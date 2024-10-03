@@ -1,0 +1,45 @@
+Week 1-2: System Design & Basic Implementation
+
+    Define Agent Roles and Interactions:
+        - Occupant Agents: Simulate occupants who follow evacuation routes. Each agent has a starting position, mobility status, and awareness of exits.
+        - Building Management Agents: Manage building systems, control exit doors, and send updates about emergencies (e.g., fire or blocked exits).
+        - Communication: Occupant agents receive real-time evacuation information from the building management agents.
+
+    Initial Implementation:
+        - Set up a basic system using SPADE (or JADE) to model the agents. Start with Occupant Agents and Building Management System Agents.
+        - Movement Algorithm: Implement a simple algorithm where each occupant moves toward the nearest exit based on static conditions.
+
+Week 3: Emergency Responder Agents & Dynamic Conditions
+
+    Emergency Responder Agents:
+        - Responders assist in guiding occupants or helping the injured. They can reroute people and manage blocked exits.
+        - Responders communicate with Building Management Agents to get real-time building info (e.g., fire spread).
+    Simulating Dynamic Conditions:
+        - Introduce changes in the environment, such as fires, blocked exits, or damaged areas. Use a time-based simulation where fires spread and certain areas become inaccessible.
+
+Week 4: Evacuation Optimization & Advanced Communication
+
+    Evacuation Optimization:
+        - Develop an algorithm that dynamically reroutes occupants based on current conditions, such as fire spread or crowded exits.
+        - Consider graph-based routing or A* search algorithms to find optimal paths under changing conditions.
+    Advanced Communication Protocols:
+        - Enhance the system to allow for multi-agent communication between occupants, responders, and building systems.
+        - Implement protocols for sharing information about blocked exits, safe zones, and responder locations.
+
+Week 5: Performance Metrics & System Resilience
+
+    Performance Metrics:
+        - Track metrics such as evacuation time, safety (how many agents successfully evacuate), and responder effectiveness (how fast responders assist occupants).
+        - Implement logging and analysis of these metrics to identify bottlenecks in evacuation strategies.
+
+    System Resilience:
+        - Simulate failures like communication breakdowns or blocked paths and evaluate how agents respond. Ensure the system can continue functioning with partial information.
+
+Week 6: User Interface & Testing
+
+    User Interface:
+        - Develop a simple UI to visualize the evacuation process. Show building layout, fire spread, and occupant movements in real-time.
+        - Allow for scenario configuration (e.g., different building layouts or emergency types).
+
+    Testing:
+        Test the system under various conditions, including fast and slow emergencies, different agent distributions, and blocked exits. Make adjustments based on testing outcomes.
