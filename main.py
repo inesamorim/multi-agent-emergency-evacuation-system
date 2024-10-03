@@ -1,20 +1,21 @@
 from agents.occupant_agent import OccupantAgent
 from agents.building_agent import BuildingAgent
 import time
+import asyncio
 
-if __name__ == "__main__":
+async def main():
     # Start the Building Agent
     building_agent = BuildingAgent("building@localhost", "password")
-    future = building_agent.start()
-    future.result()
+    await building_agent.start(auto_register=True)
+    
 
     # Start 5 Occupant Agents
     occupants = []
     for i in range(5):
         occupant_agent = OccupantAgent(f"occupant{i}@localhost", "password")
         occupants.append(occupant_agent)
-        future = occupant_agent.start()
-        future.result()
+        await occupant_agent.start(auto_register=True)
+        
 
     print("All agents are running...")
 
@@ -26,3 +27,6 @@ if __name__ == "__main__":
         building_agent.stop()
         for occupant in occupants:
             occupant.stop()
+
+if __name__ == "__main__":
+    asyncio.run(main())

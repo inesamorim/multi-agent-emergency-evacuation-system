@@ -3,6 +3,7 @@
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 import random
+import asyncio
 
 class OccupantAgent(Agent):
     class EvacuateBehaviour(CyclicBehaviour):
@@ -15,7 +16,7 @@ class OccupantAgent(Agent):
             else: 
                 print(f"Occupant {self.agent.name} is blocked and is trying another route")
 
-            await self.sleep(2)
+            await asyncio.sleep(2)
 
     async def setup(self):
         print(f"Occupant agent {self.name} starting ...")
