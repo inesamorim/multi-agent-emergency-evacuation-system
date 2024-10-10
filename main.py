@@ -2,8 +2,10 @@ from agents.occupant_agent import OccupantAgent
 from agents.building_agent import BuildingAgent
 import time
 import asyncio
+import threading
+import user_interface
 
-async def main():
+async def start_agents():
     # Start the Building Agent
     building_agent = BuildingAgent("building@localhost", "password")
     await building_agent.start(auto_register=True)
@@ -28,5 +30,21 @@ async def main():
         for occupant in occupants:
             occupant.stop()
 
+def run_spade_agents():
+    asyncio.run(start_agents())
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    #threading allows multiple tasks to run concurrently within the same program
+    # 1- managing the agents' lyfecycle
+    # 2- ruuning user interface
+    agent_thread = threading.Thread(target=run_spade_agents)
+    agent_thread.start()
+
+    #Start User Interface
+    root = user_interface.tk.Tk()
+    root.title("Emergency Evacuation System")
+    evacuation_ui = user_interface.EvacuationUI(root, grid_size=10)
+    root.mainloop()
+
+    #stop the agents thread once the UI is closed
+    agent_thread.join()
