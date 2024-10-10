@@ -1,11 +1,13 @@
 from agents.occupant_agent import OccupantAgent
 from agents.building_agent import BuildingAgent
+from agents.emergency_responder_agent import EmergencyResponderAgent
 import time
 import asyncio
 import threading
 import user_interface
 
 async def start_agents():
+    
     # Start the Building Agent
     building_agent = BuildingAgent("building@localhost", "password")
     await building_agent.start(auto_register=True)
@@ -17,6 +19,12 @@ async def start_agents():
         occupant_agent = OccupantAgent(f"occupant{i}@localhost", "password")
         occupants.append(occupant_agent)
         await occupant_agent.start(auto_register=True)
+    
+
+    #Start Responder Agent
+    responder_agent = EmergencyResponderAgent("responder@localhost", "password")
+    await responder_agent.start(auto_register=True)
+    
         
 
     print("All agents are running...")
@@ -29,6 +37,7 @@ async def start_agents():
         building_agent.stop()
         for occupant in occupants:
             occupant.stop()
+        responder_agent.stop()
 
 def run_spade_agents():
     asyncio.run(start_agents())
