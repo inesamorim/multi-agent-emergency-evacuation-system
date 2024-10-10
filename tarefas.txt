@@ -1,0 +1,93 @@
+D
+agentes
+    ocupantes(do prédio)
+    emergency responders
+    building managment systems (the eyes, info passes throu them)
+ambiente
+    building
+    combination of floors
+    per floor
+    ->exit of floor
+    ->doors
+    ->windows
+    states ->destroided, safe, unknown?, risky
+
+decentralized system 
+
+ where agents autonomously handle different aspects of 
+ evacuation,
+ ->guiding occupants, 
+ ->managing exits, 
+ ->coordinating emergency responders.
+
+
+need help
+OCCUPANT 
+    ->comunicate with:
+        ER, ENV(partial environment)
+    ->location
+    ->mobility(able-bodied, disabled[0,1])
+                            0->can't use stars 
+                            1->cant use stars
+    ->destination??
+    ->They make decisions on how to 
+    navigate to the nearest exit based on real-time information
+    ->act individually, do not comunicate unleass with hellpers
+    ->they update environmet when ->succesfully exited danger
+                                  ->interact with hellper
+    ->only goal, find clossest exit
+
+
+hellpers
+EMERGENCY RESPONDERS
+    ->comunicate with:
+        BMS,O, ENV(partial environment)
+    ->nº of eache sub class
+    ->formulation of groups(no single unit if poss, all groups >=1 paramedic)
+    ->hive mind of
+        ->firefighters
+            ->location, spetial function
+        ->paramedics
+        ->security officers
+        ...
+        (classes of a class)
+        ->act as unit, all posses the same info of environment
+
+BUILDING MANAGEMENT SYSTEM (BMS)
+    ->comunicate with:
+        ER
+    ->update environment(real time)
+    ->controll partially environment
+    ->loock doors to prevent fire
+    ->little info on OCCUPANT location/state
+
+
+environment changer
+DYNAMIC EMERGENCY CONDITIONS
+    ->comunicate with:
+        ENVIRONMENT
+    ->alters the state of environment(fires spreading, structural damage, or blocked exits)
+
+ 
+
+ENVIRONMENT
+    ->nº of floors
+    ->general entries/exists
+    ->plant of floor
+        ->transfer points(elevadores, portas, escadas, janelas)~
+            ->janelas são caso especial -andar 0(portas)
+                                        -se andar blokeado usadas como portas
+
+        ->danger lev per block
+            ->0-not affected
+            ->1-smook, blocks disabled, able_body move as disabled
+            ->2-can only pass if with firefighters
+            ->3-can only pass firefighters
+            ->4-dead zone completly blocked
+        
+        ->nº of individuals(occupant density, location of each)
+
+
+COORDINATION AND COMMUNICATION
+EVACUATION STRATEGIES
+PERFORMANCE METRICS 
