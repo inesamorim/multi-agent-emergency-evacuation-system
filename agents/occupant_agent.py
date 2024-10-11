@@ -8,6 +8,7 @@ import asyncio
 from user_interface import EvacuationUI
 
 class OccupantAgent(Agent):
+
     class EvacuateBehaviour(CyclicBehaviour):
         ''' 
         estado de emergência constante
@@ -40,7 +41,7 @@ class OccupantAgent(Agent):
                 x1 = poss_exits[i][0]
                 y1 = poss_exits[i][1]
                 if np.sqrt((x-x1)**2 + (y-y1)**2)<dist:
-                    dits = np.sqrt((x-x1)**2 + (y-y1)**2)<dist
+                    dist = np.sqrt((x-x1)**2 + (y-y1)**2)
                     p_dist = i
 
             return poss_exits[p_dist][0], poss_exits[p_dist][1]
@@ -69,6 +70,17 @@ class OccupantAgent(Agent):
             await asyncio.sleep(2)
 
 
+    def __init__(self, body_state):
+        '''
+        body_state -> defines movement
+        disabled
+        0-> cant use stairs, slow, no movment in dangerous situations
+        1-> can use stairs, slow (affected by hazerd, disabled with paramedics)
+        2-> can use stairs, normal speed
+        proposta como easter egg
+        3-> consegue saltar por buracos entre pisos/ tem formato de pato
+        '''
+        self.body_state = body_state 
         
 
     async def setup(self):
