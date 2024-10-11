@@ -22,7 +22,7 @@ async def start_agents():
     
 
     #Start Responder Agent
-    responder_agent = EmergencyResponderAgent("responder@localhost", "password")
+    responder_agent = EmergencyResponderAgent("responder1@localhost", "password")
     await responder_agent.start(auto_register=True)
     
         

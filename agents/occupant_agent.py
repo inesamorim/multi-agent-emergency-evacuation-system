@@ -8,17 +8,24 @@ import asyncio
 class OccupantAgent(Agent):
     class EvacuateBehaviour(CyclicBehaviour):
         async def run(self):
-            print(f"Occupant {self.agent.name} is trying to evacuate...")
+            if self.agent.exits["Exit 1"] == 'closed':
+                print(f"{self.agent.name} found Exit 1 clsoed, rerouting to another exit...")
 
-            if random.random() > 0.2:
-                print(f"Occupant {self.agent.name} has moved closer to the exit")
+            else:
+                print(f"{self.agent.name} is heading to Exit 1")
 
-            else: 
-                print(f"Occupant {self.agent.name} is blocked and is trying another route")
+            if self.agent.elevator == 'off':
+                print(f"{self.agent.name} found the elevator off, will try to use stairs")
 
             await asyncio.sleep(2)
 
     async def setup(self):
         print(f"Occupant agent {self.name} starting ...")
+
+        self.exits = {"Exit 1": 'open',
+                      "Exit 2": 'open'}
+        self.elevator = 'on'
+
+        
         evac_behaviour = self.EvacuateBehaviour()
         self.add_behaviour(evac_behaviour)
