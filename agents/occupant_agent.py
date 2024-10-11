@@ -2,8 +2,9 @@
 
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
-import random
+from spade.template import Template
 import asyncio
+
 
 class OccupantAgent(Agent):
     class EvacuateBehaviour(CyclicBehaviour):
@@ -19,6 +20,15 @@ class OccupantAgent(Agent):
 
             await asyncio.sleep(2)
 
+    class ReceiveAlertBehaviour(CyclicBehaviour):
+        async def run(self):
+            #Receive a message
+            msg = await self.receive(timeout=10)
+            if msg:
+                print(f"Occupant {self.agent.name} received alert: {msg.body}")
+                #TODO: add reaction to this msg
+
+
     async def setup(self):
         print(f"Occupant agent {self.name} starting ...")
 
@@ -29,3 +39,7 @@ class OccupantAgent(Agent):
         
         evac_behaviour = self.EvacuateBehaviour()
         self.add_behaviour(evac_behaviour)
+
+        receive_alert_behaviour = self.ReceiveAlertBehaviour()
+        receive_template = Template(sender="building@localhost")
+        self.add_behaviour(receive_alert_behaviour, receive_template)

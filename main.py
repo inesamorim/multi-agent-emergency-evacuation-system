@@ -21,11 +21,13 @@ async def start_agents():
         await occupant_agent.start(auto_register=True)
     
 
-    #Start Responder Agent
-    responder_agent = EmergencyResponderAgent("responder1@localhost", "password")
-    await responder_agent.start(auto_register=True)
-    
-        
+    #Start 3 Responder Agents
+    #responders = []
+    #for i in range(3):
+        #responder_agent = EmergencyResponderAgent(f"responder{i}@localhost", "password")
+        #responders.append(responder_agent)
+        #await responder_agent.start(auto_register=True)
+      
 
     print("All agents are running...")
 
@@ -34,10 +36,10 @@ async def start_agents():
             time.sleep(1)
     except KeyboardInterrupt:
         print("Stopping agents...")
-        building_agent.stop()
+        #building_agent.stop()
         for occupant in occupants:
             occupant.stop()
-        responder_agent.stop()
+        #responder_agent.stop()
 
 def run_spade_agents():
     asyncio.run(start_agents())
