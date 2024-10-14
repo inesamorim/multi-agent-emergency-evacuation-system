@@ -25,7 +25,7 @@ need help
 OCCUPANT 
     ->comunicate with:
         ER, ENV(partial environment)
-    ->location
+    ->location(in environment)
     ->mobility(able-bodied, disabled[0,1])
                             0->can't use stars 
                             1->cant use stars
