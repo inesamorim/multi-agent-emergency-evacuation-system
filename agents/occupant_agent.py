@@ -2,15 +2,15 @@
 
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
-import random
-import numpy as np
+from spade.template import Template
 import asyncio
 from user_interface import EvacuationUI
+
 
 class OccupantAgent(Agent):
 
     class EvacuateBehaviour(CyclicBehaviour):
-        ''' 
+        '''
         estado de emergência constante
         se existir porta -> move to clossest exit
         se não ->  random moove
@@ -25,8 +25,8 @@ class OccupantAgent(Agent):
             '''
             #get poss of ocupant based on name / name==poss na list
             poss_exits = EvacuationUI.exits_locations
-            
-            ###ver caso não existam saídas(saida==curr_poss ou -1)-> andar aleatóriamente 
+
+            ###ver caso não existam saídas(saida==curr_poss ou -1)-> andar aleatóriamente
             if not poss_exits:return -1
 
             x, y = EvacuationUI.occupants_loc[self.name] #[x, y]
@@ -45,11 +45,11 @@ class OccupantAgent(Agent):
                     p_dist = i
 
             return poss_exits[p_dist][0], poss_exits[p_dist][1]
-        
+
 
 
         async def run(self):
-            ''' 
+            '''
             se saida-> vai para saida
             se não random
             '''
@@ -70,6 +70,7 @@ class OccupantAgent(Agent):
             await asyncio.sleep(2)
 
 
+
     def __init__(self, body_state):
         '''
         body_state -> defines movement
@@ -80,8 +81,8 @@ class OccupantAgent(Agent):
         proposta como easter egg
         3-> consegue saltar por buracos entre pisos/ tem formato de pato
         '''
-        self.body_state = body_state 
-        
+        self.body_state = body_state
+
 
     async def setup(self):
         print(f"Occupant agent {self.name} starting ...")
@@ -90,13 +91,12 @@ class OccupantAgent(Agent):
                       "Exit 2": 'open'}
         self.elevator = 'on'
 
-        
+
         evac_behaviour = self.EvacuateBehaviour()
         self.add_behaviour(evac_behaviour)
 
-    
 
-    
-    
+
+
+
     ###
-
