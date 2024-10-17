@@ -85,6 +85,66 @@ class OccupantAgent(Agent):
         self.body_state = body_state
 
 
+    '''
+    poss_moves
+    preff_moves
+    '''
+    async def ploss(self, x, y, grid_sz):
+
+        if grid_sz[x, y] == 5: return False
+        if x<0 or y<0: return False
+        if x>=len(grid_sz[0]) or y>len(grid_sz):return False
+        
+        pers_state = self.body_state
+        x1, y1, z = EvacuationUI.occupants_loc[self.name]
+
+        if pers_state == 0:
+            if np.sqrt((x-x1)**2) == 2 or np.sqrt((y-y1)**2) == 2:return False
+
+        return True
+    
+    async def poss_moves(self)-> list:
+        x, y, z = EvacuationUI.occupants_loc[self.name]
+        grid_sz = EvacuationUI.grid_size #no futuro alterar para BMS.get_floor(z) ->return grid
+
+        ''' 
+        1->portas 
+        2->janelas
+        3->escadas
+        4->pessoas
+        5->obstáculos
+
+        [[0, 0, 0, 0, 0, 0,]
+        [1, 0, 0, 0, 0, 0,]
+        [0, 0, 3, 0, 0, 0,]
+        [0, 0, 0, 0, 2, 2,]
+        [0, 0, 0, 0, 2, 0,]
+        [0, 0, 0, 0, 1, 0]]
+        '''
+        x1 = [x-2, x-1, x, x+1, x+1]
+        y1 = [y-2, y-1, y, y+1, y+2]
+        poss_moves = []
+        for i in range(5):
+            for j in range(5):
+                if ploss(x1[i], y1[i], grid_sz): poss_moves.append([x1[i], y1[i]])
+        return poss_moves
+    
+    async def get_diss(self, move):
+        #exits_loc = função q devolve a loc das escadas e janelas(se andar 0) do andar(z)
+
+        #return dist
+        pass
+    
+    async def preff_moves(self):
+        poss_moves = poss_moves()
+        list_of_dist = [0 for i in range(len(poss_moves))]
+        #ver dist de cada poss à saida mais proxima e adequar priority list dessa forma
+        for i in range(len(poss_moves)):
+            list_of_dist[i] = get_diss(poss_moves[i])
+        pass
+       
+
+
     async def setup(self):
         print(f"Occupant agent {self.name} starting ...")
 
