@@ -10,6 +10,7 @@ import numpy as np
 
 class OccupantAgent(Agent):
 
+
     class EvacuateBehaviour(CyclicBehaviour):
         '''
         estado de emergência constante
@@ -25,7 +26,7 @@ class OccupantAgent(Agent):
             se dada prioridade, ver as mais proximas entre as de prioridade
             '''
             #get poss of ocupant based on name / name==poss na list
-            poss_exits = EvacuationUI.exits_locations
+            poss_exits = EvacuationUI.exits_doors()
 
             ###ver caso não existam saídas(saida==curr_poss ou -1)-> andar aleatóriamente
             if not poss_exits:return -1
@@ -82,7 +83,11 @@ class OccupantAgent(Agent):
         proposta como easter egg
         3-> consegue saltar por buracos entre pisos/ tem formato de pato
         '''
-        self.body_state = body_state
+        self.body_state = body_state 
+        self.grid = EvacuationUI.get_original_grid(EvacuationUI.occupants_loc[self.name][2])
+        self.existing_exits = EvacuationUI.get_stairs_loc(EvacuationUI.occupants_loc[self.name][2])
+        self.grid_size = len(self.grid) * len(self.grid[0])
+
 
 
     '''
@@ -129,19 +134,24 @@ class OccupantAgent(Agent):
                 if ploss(x1[i], y1[i], grid_sz): poss_moves.append([x1[i], y1[i]])
         return poss_moves
     
-    async def get_diss(self, move):
+    async def get_diss(self, x, y):
         #exits_loc = função q devolve a loc das escadas e janelas(se andar 0) do andar(z)
+        dist = self.grid_size + 1
+        for exit in self.existing_exits:
+            d = np.sqrt((exit[0] - x)**2 + (exit[1] - y)**2)
+            if d<dist: dist = d
+        return dist
 
-        #return dist
-        pass
     
     async def preff_moves(self):
         poss_moves = poss_moves()
         list_of_dist = [0 for i in range(len(poss_moves))]
         #ver dist de cada poss à saida mais proxima e adequar priority list dessa forma
         for i in range(len(poss_moves)):
-            list_of_dist[i] = get_diss(poss_moves[i])
-        pass
+            list_of_dist[i] = get_diss(poss_moves[i][0], poss_moves[i][1])
+
+        sorted_coordinates = [coord for coord, dist in sorted(zip(poss_moves, list_of_dist), key=lambda x: x[1])]
+        return sorted_coordinates 
        
 
 
