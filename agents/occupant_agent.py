@@ -5,6 +5,7 @@ from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 import asyncio
 from user_interface import EvacuationUI
+import numpy as np
 
 
 class OccupantAgent(Agent):

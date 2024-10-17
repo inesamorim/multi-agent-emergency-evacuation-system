@@ -9,7 +9,7 @@ class EvacuationUI:
 
         #EXITS INFO
         self.exits_locations = [(0,4),(9,7)]
-        self.exits = {"Exit 0": 'open',
+        self.exits_state = {"Exit 0": 'open',
                       "Exit 1": 'closed'}
         
         #WINDOWS INFO
@@ -21,6 +21,7 @@ class EvacuationUI:
 
         #OCCUPANTS INFO
         self.occupants_loc = [(1,2), (2,4), (5,7), (3,8), (9,7)]
+        self.occupants_health = [1,0,1,1,1]
 
         self.root.configure(bg='pink') #background color
         self.canvas = tk.Canvas(root, 
@@ -50,8 +51,9 @@ class EvacuationUI:
         self.legend_frame.pack(side=tk.RIGHT, padx=10)
         self.create_legend()
         
-        #randomly update occupants position
-        self.root.after(1000, self.update_agents)
+        #updates information every 2 seconds
+        self.root.after(2000, self.send_plan_to_bms)
+        self.root.after(2000, self.update_positions)
 
 
     def create_grid(self):
@@ -80,6 +82,13 @@ class EvacuationUI:
             self.canvas.itemconfig(self.cells[(x,y)], fill='#fc8eac')
         if curr_state == 'closed':
             self.canvas.itemconfig(self.cells[(x,y)], fill='#ff007f')
+    
+    def get_exit_status(self, exit_id):
+        """returns the status and location of the specified exit"""
+        exit_status = self.exits[F"Exit {exit_id}"]
+        exit_location = self.exits_locations[exit_id]
+        
+        return exit_status, exit_location
     
     def change_door_state(self, door, x,y, curr_state):
         if curr_state == 'open':

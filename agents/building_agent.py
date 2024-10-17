@@ -4,28 +4,26 @@ from spade.agent import Agent
 from spade.behaviour import OneShotBehaviour
 from spade.behaviour import CyclicBehaviour
 from spade.message import Message
-import user_interface
+import user_interface as ui
 
 class BuildingAgent(Agent):
     class AlertBehaviour(OneShotBehaviour):
         async def run(self):
             print(f"Building agent {self.agent.name} is sending evacuation alerts...")
 
-            #add communications later
-
-    """class ManageBuildingBehaviour(CyclicBehaviour):
+    class MonitorExits(CyclicBehaviour):
         async def run(self):
-            if self.agent.emergency_scenario == 'fire':
-                self.agent.close_exit("Exit 1")
-                self.agent.switch_off_elevator()
-                msg = Message(to="occupant0@localhost")
-                msg.body = "Exit 1 is closed, use alternative exits."
+            #The BuildingAgent should periodically send messages to the occupant agents. These messages will contain evacuation instructions (e.g., which exits to use).
+
+            exit_status, exit_location = ui.EvacuationUI.get_exit_status(0)
+
+            for i in range(len(ui.EvacuationUI.occupants_loc)):
+                msg = Message(to=f"occupant{i}@localhost")
+                if exit_status == 'open':
+                    msg.body = f"You can use Exit 0 at location {exit_location}. It is open."               
+                else:
+                    msg.body = "Exit 0 is closed. Find an alternative."
                 await self.send(msg)
-            
-            await asyncio.sleep(5)
-        
-        async def on_end(self):
-            print("Building management behaviour ended.")"""
 
 
     async def setup(self):
@@ -33,6 +31,9 @@ class BuildingAgent(Agent):
 
         alert_behaviour = self.AlertBehaviour()
         self.add_behaviour(alert_behaviour)
+
+        monitor_behaviour = self.MonitorExits(period=5)
+        self.add_behaviour(monitor_behaviour)
 
         #self.emergency_scenario = 'fire'
 

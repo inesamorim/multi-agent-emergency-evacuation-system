@@ -36,7 +36,7 @@ async def start_agents():
             time.sleep(1)
     except KeyboardInterrupt:
         print("Stopping agents...")
-        #building_agent.stop()
+        building_agent.stop()
         for occupant in occupants:
             occupant.stop()
         #responder_agent.stop()
