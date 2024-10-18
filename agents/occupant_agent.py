@@ -18,31 +18,6 @@ class OccupantAgent(Agent):
         se não ->  random moove
         '''
 
-        async def clossest_exit(self):
-            
-            #get poss of ocupant based on name / name==poss na list
-            poss_exits = EvacuationUI.exits_doors()
-
-            ###ver caso não existam saídas(saida==curr_poss ou -1)-> andar aleatóriamente
-            if not poss_exits:return -1
-
-            x, y = EvacuationUI.occupants_loc[self.name] #[x, y]
-
-            #ver prioridade -> mais á frente... :)
-
-            dist = EvacuationUI.grid_size + 1
-            i = 0
-            p_dist = -1
-
-            for i in range(poss_exits):
-                x1 = poss_exits[i][0]
-                y1 = poss_exits[i][1]
-                if np.sqrt((x-x1)**2 + (y-y1)**2)<dist:
-                    dist = np.sqrt((x-x1)**2 + (y-y1)**2)
-                    p_dist = i
-
-            return poss_exits[p_dist][0], poss_exits[p_dist][1]
-
 
 
         
