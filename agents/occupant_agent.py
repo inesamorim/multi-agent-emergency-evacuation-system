@@ -35,6 +35,8 @@ class OccupantAgent(Agent):
         proposta como easter egg
         3-> consegue saltar por buracos entre pisos/ tem formato de pato
         '''
+        super().__init__(name)
+        
         self.name = name
         self.body_state = body_state 
         self.grid = EvacuationUI.get_original_grid(EvacuationUI.occupants_loc[self.name][2])
