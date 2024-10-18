@@ -1,5 +1,6 @@
 import tkinter as tk
 import random
+from agents import occupant_agent
 
 class EvacuationUI: 
     def __init__(self, root, grid_size=10, num_floors = 1):
@@ -151,6 +152,20 @@ class EvacuationUI:
             self.update_agent_position(agent_id, new_x, new_y)
 
         self.root.after(1000, self.update_agents)
+
+    def demand_list(self):
+        ''' recives all the ocupants requests for new positions '''
+        list_of_demanded_positions = []
+        
+
+        for z in self.num_floors:
+            floor = []
+            for i in self.agents:
+                if self.agents[i][2] == z:
+                    floor.append(occupant_agent.halt_the_demands())
+            list_of_demanded_positions.append(floor)
+
+        return list_of_demanded_positions
     
 if __name__ == "__main__":
     root = tk.Tk()

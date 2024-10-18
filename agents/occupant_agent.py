@@ -21,7 +21,11 @@ class OccupantAgent(Agent):
 
 
 
-    def __init__(self, body_state):
+    def __init__(self, name, body_state):
+        '''
+        cada agente, quando a ser criado, recebe um nome e o seu estado fisico 
+        '''
+
         '''
         body_state -> defines movement
         disabled
@@ -31,6 +35,7 @@ class OccupantAgent(Agent):
         proposta como easter egg
         3-> consegue saltar por buracos entre pisos/ tem formato de pato
         '''
+        self.name = name
         self.body_state = body_state 
         self.grid = EvacuationUI.get_original_grid(EvacuationUI.occupants_loc[self.name][2])
         self.existing_exits = EvacuationUI.get_stairs_loc(EvacuationUI.occupants_loc[self.name][2])
@@ -121,12 +126,14 @@ class OccupantAgent(Agent):
     async def halt_the_demands(self):
             
         x, y, z = EvacuationUI.occupants_loc[self.name]
+        n_occupants = len(EvacuationUI.get_occupants(z)) #nº de occupantes por andar
 
         sorted_coordinates = self.preff_moves()
         reduced_list = []
         for coordenates in sorted_coordinates:
-            if coordenates[0] == x and coordenates[1] == y:
+            if (coordenates[0] == x and coordenates[1] == y) or n_occupants == 0:
                 return reduced_list
+            n_occupants-1
             reduced_list.append(coordenates)
         return reduced_list
     
