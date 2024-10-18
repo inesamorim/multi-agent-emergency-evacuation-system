@@ -51,7 +51,7 @@ class OccupantAgent(Agent):
 
         if grid_sz[x, y] == 5: return False
         if x<0 or y<0: return False
-        if x>=len(grid_sz[0]) or y>len(grid_sz):return False
+        if x>=len(grid_sz) or y>len(grid_sz[0]):return False
         
         pers_state = self.body_state
         x1, y1, z = EvacuationUI.occupants_loc[self.name]
@@ -109,22 +109,22 @@ class OccupantAgent(Agent):
     
     
     async def preff_moves(self):
-        ''' 
-        len(preff_moves) = min(nº of occupants in floor, len(preff_moves sedo q ela acaba na possição atual do occupante))
-        '''
 
-        poss_moves = poss_moves()
+        poss_moves = await self.poss_moves()
         list_of_dist = [0 for i in range(len(poss_moves))]
         #ver dist de cada poss à saida mais proxima e adequar priority list dessa forma
         for i in range(len(poss_moves)):
-            list_of_dist[i] = self.get_diss(poss_moves[i][0], poss_moves[i][1])
+            list_of_dist[i] = await self.get_diss(poss_moves[i][0], poss_moves[i][1])
 
         sorted_coordinates = [coord for coord, dist in sorted(zip(poss_moves, list_of_dist), key=lambda x: x[1])]
         return sorted_coordinates 
        
 
     async def halt_the_demands(self):
-            
+        ''' 
+        len(preff_moves) = min(nº of occupants in floor, len(preff_moves sedo q ela acaba na possição atual do occupante))
+        '''
+
         x, y, z = EvacuationUI.occupants_loc[self.name]
         n_occupants = len(EvacuationUI.get_occupants(z)) #nº de occupantes por andar
 
@@ -133,7 +133,7 @@ class OccupantAgent(Agent):
         for coordenates in sorted_coordinates:
             if (coordenates[0] == x and coordenates[1] == y) or n_occupants == 0:
                 return reduced_list
-            n_occupants-1
+            n_occupants-=1
             reduced_list.append(coordenates)
         return reduced_list
     
