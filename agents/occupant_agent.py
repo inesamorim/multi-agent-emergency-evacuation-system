@@ -20,9 +20,6 @@ class OccupantAgent(Agent):
 
 
 
-        
-
-
 
     def __init__(self, body_state):
         '''
@@ -105,7 +102,12 @@ class OccupantAgent(Agent):
 
     '''
     
+    
     async def preff_moves(self):
+        ''' 
+        len(preff_moves) = min(nº of occupants in floor, len(preff_moves sedo q ela acaba na possição atual do occupante))
+        '''
+
         poss_moves = poss_moves()
         list_of_dist = [0 for i in range(len(poss_moves))]
         #ver dist de cada poss à saida mais proxima e adequar priority list dessa forma
@@ -116,6 +118,18 @@ class OccupantAgent(Agent):
         return sorted_coordinates 
        
 
+    async def halt_the_demands(self):
+            
+        x, y, z = EvacuationUI.occupants_loc[self.name]
+
+        sorted_coordinates = self.preff_moves()
+        reduced_list = []
+        for coordenates in sorted_coordinates:
+            if coordenates[0] == x and coordenates[1] == y:
+                return reduced_list
+            reduced_list.append(coordenates)
+        return reduced_list
+    
 
     async def setup(self):
         print(f"Occupant agent {self.name} starting ...")
