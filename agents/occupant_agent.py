@@ -19,12 +19,7 @@ class OccupantAgent(Agent):
         '''
 
         async def clossest_exit(self):
-            ''' ver se e quantas saidas existem,
-            se não existem, andar aleatóriamente,
-            se existem:
-            se nada dito em prioridade, ver a mais proxima
-            se dada prioridade, ver as mais proximas entre as de prioridade
-            '''
+            
             #get poss of ocupant based on name / name==poss na list
             poss_exits = EvacuationUI.exits_doors()
 
@@ -50,26 +45,7 @@ class OccupantAgent(Agent):
 
 
 
-        async def run(self):
-            '''
-            se saida-> vai para saida
-            se não random
-            '''
-
-            if self.clossest_exit()!= -1:
-                EvacuationUI.update_agent_position(self.agent.name,self.clossest_exit())
-
-            if self.agent.exits["Exit 1"] == 'closed':
-                print(f"{self.agent.name} found Exit 1 clsoed, rerouting to another exit...")
-
-            else:
-                print(f"{self.agent.name} is heading to Exit 1")
-
-            if self.agent.elevator == 'off':
-                print(f"{self.agent.name} found the elevator off, will try to use stairs")
-
-
-            await asyncio.sleep(2)
+        
 
 
 
@@ -131,7 +107,7 @@ class OccupantAgent(Agent):
         poss_moves = []
         for i in range(5):
             for j in range(5):
-                if ploss(x1[i], y1[i], grid_sz): poss_moves.append([x1[i], y1[i]])
+                if self.ploss(x1[i], y1[i], grid_sz): poss_moves.append([x1[i], y1[i]])
         return poss_moves
     
     async def get_diss(self, x, y):
@@ -142,13 +118,24 @@ class OccupantAgent(Agent):
             if d<dist: dist = d
         return dist
 
+
+    '''
+    preff_mover
+    gets the list of possible mooves exp:[(x1,y1), (x2, y2), (x3, y3)]
+    get_diss -> para uma dada coordenada exp(x1, y1) ela dá a distância á saída mais próxima
+    [2, 4.5, 0]
+    [(x1,y1), (x2, y2), (x3, y3)]
+    e vai returnar
+    [(x3, y3), (x1, y1), (x2, y2)]
+
+    '''
     
     async def preff_moves(self):
         poss_moves = poss_moves()
         list_of_dist = [0 for i in range(len(poss_moves))]
         #ver dist de cada poss à saida mais proxima e adequar priority list dessa forma
         for i in range(len(poss_moves)):
-            list_of_dist[i] = get_diss(poss_moves[i][0], poss_moves[i][1])
+            list_of_dist[i] = self.get_diss(poss_moves[i][0], poss_moves[i][1])
 
         sorted_coordinates = [coord for coord, dist in sorted(zip(poss_moves, list_of_dist), key=lambda x: x[1])]
         return sorted_coordinates 
