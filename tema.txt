@@ -43,3 +43,72 @@ Week 6: User Interface & Testing
 
     Testing:
         Test the system under various conditions, including fast and slow emergencies, different agent distributions, and blocked exits. Make adjustments based on testing outcomes.
+
+
+
+
+
+
+    
+########################################################################################################
+########################################################################################################
+########################################################################################################
+########################################################################################################
+########################################################################################################
+
+ER(FF,PM, SO)
+    ->recebe(nº de FF, nº de PM, nº de SO)
+    SO-> funciona em zonas menos afetadas 
+        é quem transmite aos OCC o trageto para eles usarem,
+        ter pelo menos um por andar
+        talvéz(aumentar a velocidade de evacuação
+               faz com q possam haver 2 occ por quadrado)
+
+    se possível, formar o maior º de grupos com FF e PM
+    FF e PM(podem usar o msm quadrado, permitem um occ no seu quadrado)
+    
+    ->attached(occ_id)
+    só dá se ainda não tiver ninguém attached
+    faz com que um occ fique prezo com eles
+
+    ->dettached()
+    oposto de attached, descarta o occ
+
+    FF-> tem a capacidade de passar por até 3 consecutivos quadrados danificados
+
+    PM-> tem 33% de chance de curar alguém afetado por fumo/poeiras dando a capacidade de
+         dar dettached() dentro do edificio sabendo q está, nesse andar um SO
+
+
+OCC
+  INTERNAL STATE OF OCC
+    ->internal funct para dar store à quantidade de smoke que a pessoa inalou
+    quando chegar ao máximo(MAX_SMOKE_LV) smk_ill = 1 e reduz nível de mobilidade
+
+    ->prob de salvamento(para BMS fazer lista de prioridade de salvamento)
+    escala de importância é basiada no quão saudáveis os individuos são
+
+
+    ->sair_cubiculo() ??? 
+
+BMS
+    responsável por calcular melhores rotas de evacuação
+    direciona todos os ER
+
+DEC
+    -> spone_inconvinience()
+    no início e poderá voltar a ser invocada com uma prob de %de quadrados danificados * 0.1
+    escolhe um ponto aleatório do prédio e torna-o estragado
+
+    -> spread_the_message()
+    de 6 em 6 segundos expandir os estragos
+    quando em contácto com uma parede pode expandir para o andar de cima 
+    expande para os lados 1quadrado por 6segundos
+
+    -> it_is_not_weed(x, z)
+    fumo/poeiras
+    (mudar a condição da existência)
+    criar uma "esfera" afetada expande x por x no andar onde estão os quadrados estragados
+    afeta mais z andares, endo cada um -[(tamanho do andar em quadrados)/z] quadrados afetados
+    
+    quando um occ for afetado por smook durante MAX_SMOKE_LV = 60*rand(3, 5, 7) perde mobilidade  

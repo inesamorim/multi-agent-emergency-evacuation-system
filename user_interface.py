@@ -3,9 +3,9 @@ import random
 from agents import building_agent
 import queue
 import user_interface
+from agents import occupant_agent
 
-
-class EvacuationUI: 
+class EvacuationUI:
     def __init__(self, root=None, grid_size=10, num_floors = 1, communication_queue = None):
         self.root = root
         self.grid_size = grid_size
@@ -24,18 +24,18 @@ class EvacuationUI:
         self.doors_locations = [(0,4,0),(9,7,0)]
         for x, y, z in self.doors_locations:
             grid = self.floors[z]
-            grid[x][y] = 1             
+            grid[x][y] = 1
         self.doors_state = {"Door 0": 'open',
                             "Door 1": 'closed'}
-        
+
         #WINDOWS INFO
         self.windows_locations = [(2, 0, 0), (7, 9, 0)]
         for x, y, z in self.windows_locations:
             grid = self.floors[z]
-            grid[x][y] = 2   
+            grid[x][y] = 2
         self.windows_state = {"Window 1": 'closed',
                             "Window 2": 'closed'}
-        
+
         #STAIRS INFO
         self.stairs_locations = [(5,5,0)]
         for x, y, z in self.stairs_locations:
@@ -48,7 +48,7 @@ class EvacuationUI:
         for x, y, z in self.occupants_loc:
             grid = self.floors[z]
             grid[x][y] = 4
-        
+
         self.initial_grid = self.floors
 
         #OBSTACLES INFO
@@ -56,19 +56,19 @@ class EvacuationUI:
         for x, y, z in self.obstacles_loc:
             grid = self.floors[z]
             grid[x][y] = 5
-        
+
         #ELEVATOR INFO
         self.elevator = 'on'
 
         #INTERFACE CREATION
         self.root.configure(bg='pink') #background color
-        self.canvas = tk.Canvas(root, 
-                                width=self.grid_size*self.cell_size, 
+        self.canvas = tk.Canvas(root,
+                                width=self.grid_size*self.cell_size,
                                 height=self.grid_size*self.cell_size,
                                 bg='pink')
         self.canvas.pack(side=tk.LEFT)
         self.create_grid()
-        
+
         self.agents = {}
 
         #simulate random agents
@@ -76,7 +76,7 @@ class EvacuationUI:
         for i in range(5):
             x, y, z = self.occupants_loc[i]
             self.add_agent(f"occupant{i}", x,y,z)
-        
+
         #create doors
         for i in range(len(self.doors_locations)):
             x = self.doors_locations[i][0]
@@ -89,7 +89,7 @@ class EvacuationUI:
             x = self.windows_locations[i][0]
             y = self.windows_locations[i][1]
             self.create_window(x,y)
-        
+
         #create stairs
         for i in range(len(self.stairs_locations)):
             x = self.stairs_locations[i][0]
@@ -100,7 +100,7 @@ class EvacuationUI:
         self.legend_frame = tk.Frame(root)
         self.legend_frame.pack(side=tk.RIGHT, padx=10)
         self.create_legend()
-        
+
         #updates information every 2 seconds
         self.root.after(2000, self.send_plan_to_bms)
         #self.root.after(2000, self.update_positions)
@@ -137,7 +137,7 @@ class EvacuationUI:
         print("[UI] Sending plan to BMS")
 
         grid_state = self.floors #grid for all floors
-        
+
         #get doors status
         doors_status = self.doors_state
         #get windows status
@@ -161,14 +161,14 @@ class EvacuationUI:
             self.canvas.itemconfig(self.cells[(x,y)], fill='#fc8eac')
         if curr_state == 'closed':
             self.canvas.itemconfig(self.cells[(x,y)], fill='#ff007f')
-    
+
     def get_doors_loc(self, floor):
         locs = []
         for x, y, z in self.doors_locations:
             if z == floor:
              locs.append((x,y))
         return locs
-    
+
     def get_doors_loc_by_id(self, floor):
         doors_loc = {}
         i = 0
@@ -179,13 +179,13 @@ class EvacuationUI:
                 doors_loc[f"{door_id}"] = (x,y)
             i += 1
         return doors_loc
-    
+
     def get_door_status(self, door_id):
         door_status = self.doors_state[F"Door {door_id}"]
         door_location = self.doors_locations[door_id]
-        
+
         return door_status, door_location
-    
+
     def change_door_state(self, door_number, x,y):
         curr_state = self.doors_state["Door f{door_number}"]
         if curr_state == 'open':
@@ -200,14 +200,14 @@ class EvacuationUI:
 
     def create_stairs(self, x, y):
         self.canvas.itemconfig(self.cells[x,y], fill='lightblue')
-    
+
     def get_stairs_loc(self, floor):
         locations = []
         for x, y, z in self.stairs_locations:
             if z == floor:
                 locations.append((x,y))
         return locations
-    
+
 
     def get_occupant_loc(self, occupant_id):
         x, y, z = self.agents[f'{occupant_id}']
@@ -233,8 +233,20 @@ class EvacuationUI:
             self.update_agent_position(agent_id, new_x, new_y)
 
         self.root.after(1000, self.update_agents)
-    
+
+    def demand_list(self):
+        ''' recives all the ocupants requests for new positions '''
+        list_of_demanded_positions = []
+
+
+        for z in self.num_floors:
+            floor = []
+            for i in self.agents:
+                if self.agents[i][2] == z:
+                    floor.append(occupant_agent.halt_the_demands())
+            list_of_demanded_positions.append(floor)
+
+        return list_of_demanded_positions
+
     def create_obstacle(self, x, y):
         self.canvas.itemconfig(self.cells[x,y], fill='red')"""
-
-    
