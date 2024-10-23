@@ -1,16 +1,18 @@
 User Interface: de dois em dois segundos:
-    [] envia planta para o BMS
-    [] pede informações aos ocupantes (preference list)*
+    [x] envia planta para o BMS - Inês
+    [] pede informações aos ocupantes (preference list)* - Dani
     [] mudar a função de update position para aceitar lista de preferências -> retorna novas posiçẽos para cada pessoa e atualiza a posição
 
 Occupant Agent:
-    [] retornar possible moves para cada pessoa (tendo em conta a mobilidade da pessoa)*
+    [x] retornar possible moves para cada pessoa (tendo em conta a mobilidade da pessoa)*
 
 BMS:
     [] enviar mensagem a cada ocupante com novas informações recebidas sobre portas, incêndio, etc
 
 BMS has information -> ocupante recebe information -> ocupante faz lista de possible moves lista de preferências -> ocupante envia lista de preferências para o ambiente -> ambiente atualiza (ciclo recomeça)
 
+[] sincronizar o inicio dos agentes - Inês
+[] em ui, na função demand_list, occupant agent não está a ser devidamente identificado - Dani
 ----------------------------------------------------------------------------------------------------------------------------------------------
 
 D
