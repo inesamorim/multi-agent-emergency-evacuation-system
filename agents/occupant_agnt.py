@@ -8,6 +8,7 @@ import spade
 import numpy as np
 from spade.message import Message
 
+MAX_HEALTH = 1000   #sempre q num quadrado com fumo, sofre dano
 
 class OccupantAgent(Agent):
     def __init__(self, jid, password, environment):
@@ -15,7 +16,8 @@ class OccupantAgent(Agent):
         self.environment = environment
         self.floor = self.environment.get_occupant_loc(self.jid)[2]
         ##hellf
-        self.helf = MAX_HEALF        
+        self.elf = self.environment.get_occupant_state(self.jid)[2]
+        self.elf_bar = MAX_HEALTH    #quando chegar a 0 -> muda de nível    
 
     async def setup(self):
         #só é invocada por trigger
@@ -26,10 +28,47 @@ class OccupantAgent(Agent):
                     print(f"Occupant {self.agent.jid} received message: {msg.body}")
                 else: 
                     print(f"Occupant {self.agent.jid} did not receive any messages")
-                
 
+        class LeaveFloor(OneShotBehaviour):
+            #quando no quadrado 4(escadas) muda de andar
+            def leave(self, cb: bool=False): #cima baixo  0 desce 1 sobe
+                x, y, z = self.environment.get_occupant_loc(self.jid)[2]
+        
+                #ver onde é q as escadas calham
+                pass
+
+
+
+        class  HOFAH(CyclicBehaviour):
+            #recebe msg
+            async def run(self):
+                holding_out_for_a_hero = await self.recive(timeout = 15)
+                if holding_out_for_a_hero and (self.elf > -1):
+                    print(f"Occupant {self.agent.jid} received message: {holding_out_for_a_hero.body}")
+                    x, y, z = self.floor
+                    return self.elf, x, y
+                else: 
+                    print(f"Occupant {self.agent.jid} did not receive any messages")
+
+        class LifeBar(CyclicBehaviour):
+            '''if quadrado em q está == fumo
+                    self.elf_bar -= 1'''
+            
+
+            
+            if self.elf_bar == 0:
+                if self.elf == 0:
+                    self.elf_bar = float("inf")
+                else:
+                    self.elf_bar = MAX_HEALTH
+                self.elf = self.elf - 1
+                        
+
+                
         #occorre normalmente está constantemente a ser feita
         class EvacuateBehaviour(CyclicBehaviour):  
+
+
             async def run(self):
                 await asyncio.sleep(3)
                 exit_loc = self.closest_exit()
