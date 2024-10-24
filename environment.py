@@ -56,6 +56,16 @@ class Environment:
         #ELEVATOR INFO
         self.elevator = 'on'
 
+        #ER AGENTS INFO
+        self.er_loc = {"eragent0@localhost": (0,0,-1),
+                       "eragent1@localhost": (0,1,-1),
+                       "eragent2@localhost": (0,2,-1),
+                       "eragent3@localhost": (0,2,-1)}
+        self.er_type = {"eragent0@localhost": 'firefighter',
+                       "eragent1@localhost": 'firefighter',
+                       "eragent2@localhost": 'paramedic',
+                       "eragent3@localhost": 'paramedic'}
+
     def get_grid(self, floor):
         """returns the current grid for the given floor"""
         grid = self.building[floor]
@@ -111,10 +121,15 @@ class Environment:
                 locations.append((x,y))
         return locations
     
-
+    def get_all_occupants_loc(self):
+        return self.occupants_loc
+    
     def get_occupant_loc(self, occupant_id):
         x, y, z = self.occupants_loc[str(occupant_id)]
         return x,y,z
+    
+    def get_all_occupants_state(self):
+        return self.occupants_health
 
     def get_occupant_state(self, occupant_id):
         return self.occupants_health[str(occupant_id)]
@@ -125,5 +140,17 @@ class Environment:
         self.building[z][x][y] = 0
         self.building[new_z][new_x][new_y] = 4
         return 1
+    
+    def get_er_loc(self, er_id):
+        return self.er_loc[str(er_id)]
+    
+    def get_all_er_locs(self):
+        return self.er_loc
+
+    def get_er_type(self, er_id):
+        return self.er_type[str(er_id)]
+    
+    def get_all_er_types(self):
+        return self.er_type
         
         
