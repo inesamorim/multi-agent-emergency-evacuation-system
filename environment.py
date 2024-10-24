@@ -37,7 +37,7 @@ class Environment:
         self.occupants_health = {"occupant0@localhost": 1, 
                               "occupant1@localhost": 0,
                               "occupant2@localhost": 1, 
-                              "occupant3@localhost": 1, 
+                              "occupant3@localhost": 2, 
                               "occupant4@localhost": 1} # 0 means not able-bodied -> cant move
         for x,y,z in self.occupants_loc.values():
             self.building[z][x][y] = 4

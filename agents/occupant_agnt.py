@@ -8,13 +8,17 @@ import spade
 import numpy as np
 from spade.message import Message
 
+
 class OccupantAgent(Agent):
     def __init__(self, jid, password, environment):
         super().__init__(jid, password)
         self.environment = environment
         self.floor = self.environment.get_occupant_loc(self.jid)[2]
+        ##hellf
+        self.helf = MAX_HEALF        
 
     async def setup(self):
+        #só é invocada por trigger
         class ReceiveWarning(OneShotBehaviour):
             async def run(self):
                 msg = await self.receive(timeout=10)
@@ -24,7 +28,8 @@ class OccupantAgent(Agent):
                     print(f"Occupant {self.agent.jid} did not receive any messages")
                 
 
-        class EvacuateBehaviour(CyclicBehaviour):
+        #occorre normalmente está constantemente a ser feita
+        class EvacuateBehaviour(CyclicBehaviour):  
             async def run(self):
                 await asyncio.sleep(3)
                 exit_loc = self.closest_exit()
