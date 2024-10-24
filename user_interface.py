@@ -234,6 +234,21 @@ class EvacuationUI:
 
         self.root.after(1000, self.update_agents)
 
+    def update_agents(self):
+        occupied_positions = set((x, y) for _, x, y, _ in self.agents.values()) #posições atuais
+        for i, agent_id in enumerate(self.agents):
+            preferences = demand_list(i)
+
+            for preferred_position in preferences:
+                new_x, new_y = preferred_position
+                if (new_x, new_y) not in occupied_positions: #se está livre
+                    #occupied_positions.remove((old_x, old_y))  remove a posição anterior do agent
+                    self.update_agent_position(agent_id, new_x, new_y) #move para lá
+                    occupied_positions.add((new_x, new_y)) 
+                    break
+
+        self.root.after(1000, self.update_agents)
+
     def demand_list(self):
         ''' recives all the ocupants requests for new positions '''
         list_of_demanded_positions = []
