@@ -1,13 +1,15 @@
+import asyncio
+
 class Environment:
     def __init__(self, grid_size=10, num_floors=1):
         self.grid_size = grid_size
         self.num_floors = num_floors
 
-        self.grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
-        
-        self.building = [self.grid for i in range(num_floors)] #list of grids, one grid per floor
+        self.building = [[[0 for _ in range(grid_size)] for _ in range(grid_size)] for _ in range(num_floors)]
+
         self.current_floor = 0
 
+        self.queue = asyncio.Queue() #fila para gerenciamento da ordem das operações
 
         #DOORS INFO
         self.doors_locations = [(0,4,0),(9,7,0)]
@@ -28,6 +30,7 @@ class Environment:
         for x, y, z in self.stairs_locations:
            self.building[z][x][y] = 3
 
+
         #OCCUPANTS INFO
         self.occupants_loc = {"occupant0@localhost": (1,2,0), 
                               "occupant1@localhost": (2,4,0),
@@ -41,6 +44,8 @@ class Environment:
                               "occupant4@localhost": 1} # 0 means not able-bodied -> cant move
         for x,y,z in self.occupants_loc.values():
             self.building[z][x][y] = 4
+        
+        #print(self.building)
 
         #OBSTACLES INFO
         self.obstacles_loc = []
@@ -57,16 +62,18 @@ class Environment:
         self.elevator = 'on'
 
         #ER AGENTS INFO
-        self.er_loc = {"eragent0@localhost": (0,0,-1),
-                       "eragent1@localhost": (0,1,-1),
-                       "eragent2@localhost": (0,2,-1),
-                       "eragent3@localhost": (0,2,-1)}
+        self.er_loc = {"eragent0@localhost": (0,0,0),
+                       "eragent1@localhost": (0,0,0),
+                       "eragent2@localhost": (0,0,0),
+                       "eragent3@localhost": (0,0,0)}
         self.er_type = {"eragent0@localhost": 'firefighter',
                        "eragent1@localhost": 'firefighter',
                        "eragent2@localhost": 'paramedic',
                        "eragent3@localhost": 'paramedic'}
         for x,y,z in self.er_loc.values():
             self.building[z][x][y] = 7
+        
+        #print(self.building)
 
     def get_num_of_floors(self):
         return len(self.building)
@@ -140,7 +147,12 @@ class Environment:
         return self.occupants_health[str(occupant_id)]
     
     def update_occupant_position(self, agent_id, new_x, new_y, new_z):
-        x,y,z = self.occupants_loc[str(agent_id)] 
+        # Verifique se o agente está no dicionário antes de tentar acessar
+        if str(agent_id) not in self.occupants_loc:
+            print(f"Error: Agent ID {agent_id} not found in occupants_loc.")
+            return 0  # Retorne um código de erro ou tome uma ação apropriada
+
+        x, y, z = self.occupants_loc[str(agent_id)]
         self.occupants_loc[str(agent_id)] = (new_x, new_y, new_z)
         self.building[z][x][y] = 0
         self.building[new_z][new_x][new_y] = 4
@@ -159,6 +171,11 @@ class Environment:
         return self.er_type
         
     def update_er_position(self, agent_id, new_x, new_y, new_z):
+        # Verifique se o agente está no dicionário antes de tentar acessar
+        if str(agent_id) not in self.er_loc:
+            print(f"Error: Agent ID {agent_id} not found in er_loc.")
+            return 0  # Retorne um código de erro ou tome uma ação apropriada
+        
         x,y,z = self.er_loc[str(agent_id)] 
         self.er_loc[str(agent_id)] = (new_x, new_y, new_z)
         self.building[z][x][y] = 0

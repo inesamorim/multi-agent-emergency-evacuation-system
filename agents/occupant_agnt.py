@@ -16,8 +16,10 @@ class OccupantAgent(Agent):
         self.environment = environment
         self.floor = self.environment.get_occupant_loc(self.jid)[2]
         ##hellf
-        self.elf = self.environment.get_occupant_state(self.jid)[2]
-        self.elf_bar = MAX_HEALTH    #quando chegar a 0 -> muda de nível    
+        self.elf = self.environment.get_occupant_state(self.jid)
+
+        self.elf_bar = MAX_HEALTH    #quando chegar a 0 -> muda de nível   
+    
 
     async def setup(self):
         #só é invocada por trigger
@@ -52,16 +54,16 @@ class OccupantAgent(Agent):
                 else: 
                     print(f"Occupant {self.agent.jid} did not receive any messages or is dead :(")
                 
-            async def send_info_to_er():
-                x, y, z = self.agent.get_occupant_loc(self.agent.jid)
+            async def send_info_to_er(self):
+                x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
                 er_agents_locs = self.agent.environment.get_all_er_locs()
-                for i in range(er_agents_locs):
+                for i in range(len(er_agents_locs)):
                     loc = er_agents_locs[i]
                     if loc[2] == z:
                         #o primeiro er agent nesse floor recebe msg
                         msg = Message(to=f"eragent{i}@localhost")
                         msg.set_metadata("performative", "informative")
-                        msg.body(f"[Occupant] I am: {self.agent.id}; My position is: {x,y,z}; My health state is: {self.agent.elf}")
+                        msg.body = f"[Occupant] I am: {self.agent.id}; My position is: {x,y,z}; My health state is: {self.agent.elf}"
 
                         await self.send(msg)
 
@@ -185,9 +187,8 @@ class OccupantAgent(Agent):
                 sorted_coordinates = [[coord for coord, dist in sorted(zip(possible_moves, distances), key=lambda x: x[1])]]
                 return sorted_coordinates
 
+        
 
         print(f"Occupant {self.jid} starting ...")
-        self.add_behaviour(ReceiveWarning())
-        self.add_behaviour(EvacuateBehaviour())
-        self.add_behaviour(HOFAH())
+        await asyncio.sleep(1)
         

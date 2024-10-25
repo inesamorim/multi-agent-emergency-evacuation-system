@@ -6,13 +6,15 @@ User Interface: de dois em dois segundos:
 Occupant Agent:
     [x] retornar possible moves para cada pessoa (tendo em conta a mobilidade da pessoa)*
     [] lifebar reduction in LifeBar
+    [] se a pessoa se move para stairs, automaticamente muda de floor
+    [] se a pessoa se move para a saída, automaticamente sai do building
 
 BMS:
     [] enviar mensagem a cada ocupante com novas informações recebidas sobre portas, incêndio, etc
 
 BMS has information -> ocupante recebe information -> ocupante faz lista de possible moves lista de preferências -> ocupante envia lista de preferências para o ambiente -> ambiente atualiza (ciclo recomeça)
 
-[] sincronizar o inicio dos agentes - Inês
+[x] sincronizar o inicio dos agentes - Inês
 [] em ui, na função demand_list, occupant agent não está a ser devidamente identificado - Dani
 ----------------------------------------------------------------------------------------------------------------------------------------------
 Behaviours:
