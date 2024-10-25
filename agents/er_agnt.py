@@ -17,17 +17,13 @@ class ERAgent(Agent):
         self.environment = environment
         self.type = type
 
-    async def foo(bar):
-        await asyncio.sleep(10)
-        print(":D")
-
     async def setup(self):
         class GoToBuilding(OneShotBehaviour):
             async def run(self):
                 msg = await self.receive(timeout=10)
                 if msg:
                     print(f"ER Agent {self.type} {self.agent.jid} received message from BMS and is coming to the rescue...")
-                    task_1 = asyncio.create_task(self.go_to_building())
+                    task_1 = asyncio.create_task(self.go_to_building()) #continue with other beahviours
                     task_1
                 else:
                     print(f"ER Agent {self.type} {self.agent.jid} did not recieve any messages")
@@ -37,7 +33,17 @@ class ERAgent(Agent):
                 print(f"ER Agent {self.agent.jid} has arrived to the scene")
 
         class GoToFloor(OneShotBehaviour):
-            print("foo")
+            async def run(self):
+                msg = await self.receive(timeout=10)
+                #msg = "Please go to floor:z"
+                if msg:
+                    msg_received = msg.body
+                    floor = msg_received.split(":")[-1].strip()
+                    x, y, z = self.agent.environment.get_stair_loc(floor)[0]
+                    self.agent.environment.update_er_position(self.agent.jid, x,y,z)
+                else:
+                    print(f"ER Agent {self.agent.jid} did not receive any information")
+                
 
         class CheckForHealthState(CyclicBehaviour):
             async def run(self):
@@ -50,6 +56,9 @@ class ERAgent(Agent):
                     msg.set_metadata("performative", "informative")
                     msg.body("[ER] Please give me information on your health state")
 
+                    await self.send(msg)
+
         print(f"ER Agent {self.agent.jid} of type {self.type} is starting...")
         self.add_behaviour(GoToBuilding())
         self.add_behaviour(CheckForHealthState())
+        self.add_behaviour(GoToFloor())

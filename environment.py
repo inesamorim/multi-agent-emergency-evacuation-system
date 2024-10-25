@@ -65,7 +65,12 @@ class Environment:
                        "eragent1@localhost": 'firefighter',
                        "eragent2@localhost": 'paramedic',
                        "eragent3@localhost": 'paramedic'}
+        for x,y,z in self.er_loc.values():
+            self.building[z][x][y] = 7
 
+    def get_num_of_floors(self):
+        return len(self.building)
+    
     def get_grid(self, floor):
         """returns the current grid for the given floor"""
         grid = self.building[floor]
@@ -153,4 +158,10 @@ class Environment:
     def get_all_er_types(self):
         return self.er_type
         
+    def update_er_position(self, agent_id, new_x, new_y, new_z):
+        x,y,z = self.er_loc[str(agent_id)] 
+        self.er_loc[str(agent_id)] = (new_x, new_y, new_z)
+        self.building[z][x][y] = 0
+        self.building[new_z][new_x][new_y] = 7
+        return 1
         

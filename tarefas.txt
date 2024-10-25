@@ -17,7 +17,31 @@ BMS has information -> ocupante recebe information -> ocupante faz lista de poss
 [] sincronizar o inicio dos agentes - Inês
 [] em ui, na função demand_list, occupant agent não está a ser devidamente identificado - Dani
 ----------------------------------------------------------------------------------------------------------------------------------------------
+Behaviours:
 
+- ER Agents:
+    [x] CheckForUnabledPeople(cyclic) -> num dado floor
+    [x] GoToFloot(OneShot) -> receive instructions from BMS
+    [] ReceiveHealthCheck(Cyclic) -> msg from occupants
+    [x] GoToBuilding(OneShot) 
+    [] Cure(OneShot) -> if health == 1: occupant is curable (será uma classe dentro da classe ReceiveHealthCheck?????)
+    [] SaveThroughWindow(Cyclic) -> if health == 0 and no exits or stairs 
+    [] PutOutFire(OneShot) -> só no fim porque fumos tóxicos 
+
+- Occupants:
+    [x] Receivewarnings(OneShot) -> msg from BMS
+    [x] EvacuateBehaviour(Cyclic) -> find exits / stairs, probably receive msg from BMS
+    [x] CheckHealth(Cyclic) -> recebe pedido from ER and send msg to ER
+    [] LeaveFloor(OneShot)
+
+- BMS:
+    [x] SendWarnings(OneShot) -> send msg to occupants no início
+    [x] ReceivePlan(Cyclic) -> a planta do edificio é atualizada a cada 2 segundos
+    [x] CallER(OneShot) -> send msg to er agents no início
+    [] HelpWithOccupantRoute(Cyclic) -> send msg to occupants
+    [x] SendERToFloor(OneShot) -> send msg to ER agents
+
+----------------------------------------------------------------------------------------------------------------------------------------------
 D
 agentes
     ocupantes(do prédio)
