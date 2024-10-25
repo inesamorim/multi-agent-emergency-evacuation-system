@@ -6,6 +6,8 @@ User Interface: de dois em dois segundos:
 Occupant Agent:
     [x] retornar possible moves para cada pessoa (tendo em conta a mobilidade da pessoa)*
     [] lifebar reduction in LifeBar
+    [] mudança de andar
+    [] atualizar andar em environmente
 
 BMS:
     [] enviar mensagem a cada ocupante com novas informações recebidas sobre portas, incêndio, etc
