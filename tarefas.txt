@@ -8,6 +8,8 @@ Occupant Agent:
     [] lifebar reduction in LifeBar
     [] se a pessoa se move para stairs, automaticamente muda de floor
     [] se a pessoa se move para a saída, automaticamente sai do building
+    [] mudança de andar
+    [] atualizar andar em environmente
 
 BMS:
     [] enviar mensagem a cada ocupante com novas informações recebidas sobre portas, incêndio, etc
@@ -23,10 +25,10 @@ Behaviours:
     [x] CheckForUnabledPeople(cyclic) -> num dado floor
     [x] GoToFloot(OneShot) -> receive instructions from BMS
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
-    [x] GoToBuilding(OneShot) 
+    [x] GoToBuilding(OneShot)
     [] Cure(OneShot) -> if health == 1: occupant is curable (será uma classe dentro da classe ReceiveHealthCheck?????)
-    [] SaveThroughWindow(Cyclic) -> if health == 0 and no exits or stairs 
-    [] PutOutFire(OneShot) -> só no fim porque fumos tóxicos 
+    [] SaveThroughWindow(Cyclic) -> if health == 0 and no exits or stairs
+    [] PutOutFire(OneShot) -> só no fim porque fumos tóxicos
 
 - Occupants:
     [x] Receivewarnings(OneShot) -> msg from BMS
@@ -56,25 +58,25 @@ ambiente
     ->windows
     states ->destroided, safe, unknown?, risky
 
-decentralized system 
+decentralized system
 
- where agents autonomously handle different aspects of 
+ where agents autonomously handle different aspects of
  evacuation,
- ->guiding occupants, 
- ->managing exits, 
+ ->guiding occupants,
+ ->managing exits,
  ->coordinating emergency responders.
 
 
 need help
-OCCUPANT 
+OCCUPANT
     ->comunicate with:
         ER, ENV(partial environment)
     ->location(in environment)
     ->mobility(able-bodied, disabled[0,1])
-                            0->can't use stars 
+                            0->can't use stars
                             1->cant use stars
     ->destination??
-    ->They make decisions on how to 
+    ->They make decisions on how to
     navigate to the nearest exit based on real-time information
     ->act individually, do not comunicate unleass with hellpers
     ->they update environmet when ->succesfully exited danger
@@ -112,7 +114,7 @@ DYNAMIC EMERGENCY CONDITIONS
         ENVIRONMENT
     ->alters the state of environment(fires spreading, structural damage, or blocked exits)
 
- 
+
 
 ENVIRONMENT
     ->nº of floors
@@ -128,10 +130,10 @@ ENVIRONMENT
             ->2-can only pass if with firefighters
             ->3-can only pass firefighters
             ->4-dead zone completly blocked
-        
+
         ->nº of individuals(occupant density, location of each)
 
 
 COORDINATION AND COMMUNICATION
 EVACUATION STRATEGIES
-PERFORMANCE METRICS 
+PERFORMANCE METRICS
