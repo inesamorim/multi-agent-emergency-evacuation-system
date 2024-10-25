@@ -32,7 +32,7 @@ class OccupantAgent(Agent):
         class LeaveFloor(OneShotBehaviour):
             #quando no quadrado 4(escadas) muda de andar
             def leave(self, cb: bool=False): #cima baixo  0 desce 1 sobe
-                x, y, z = self.environment.get_occupant_loc(self.jid)[2]
+                x, y, z = self.environment.get_occupant_loc(self.agent.jid)[2]
         
                 #ver onde é q as escadas calham
                 pass
@@ -40,15 +40,30 @@ class OccupantAgent(Agent):
 
 
         class  HOFAH(CyclicBehaviour):
-            #recebe msg
+            #recebe msg asking for health state
             async def run(self):
-                holding_out_for_a_hero = await self.recive(timeout = 15)
-                if holding_out_for_a_hero and (self.elf > -1):
+                holding_out_for_a_hero = await self.receive(timeout = 15)
+                if holding_out_for_a_hero and (self.agent.elf > -1): #not dead
                     print(f"Occupant {self.agent.jid} received message: {holding_out_for_a_hero.body}")
-                    x, y, z = self.floor
-                    return self.elf, x, y
+
+                    #send info to ER agent on that floor
+                    await self.send_info_to_er()
+                         
                 else: 
-                    print(f"Occupant {self.agent.jid} did not receive any messages")
+                    print(f"Occupant {self.agent.jid} did not receive any messages or is dead :(")
+                
+            async def send_info_to_er():
+                x, y, z = self.agent.get_occupant_loc(self.agent.jid)
+                er_agents_locs = self.agent.environment.get_all_er_locs()
+                for i in range(er_agents_locs):
+                    loc = er_agents_locs[i]
+                    if loc[2] == z:
+                        #o primeiro er agent nesse floor recebe msg
+                        msg = Message(to=f"eragent{i}@localhost")
+                        msg.set_metadata("performative", "informative")
+                        msg.body(f"[Occupant] I am: {self.agent.id}; My position is: {x,y,z}; My health state is: {self.agent.elf}")
+
+                        await self.send(msg)
 
         class LifeBar(CyclicBehaviour):
             '''if quadrado em q está == fumo
@@ -67,8 +82,6 @@ class OccupantAgent(Agent):
                 
         #occorre normalmente está constantemente a ser feita
         class EvacuateBehaviour(CyclicBehaviour):  
-
-
             async def run(self):
                 await asyncio.sleep(3)
                 exit_loc = self.closest_exit()
@@ -176,4 +189,5 @@ class OccupantAgent(Agent):
         print(f"Occupant {self.jid} starting ...")
         self.add_behaviour(ReceiveWarning())
         self.add_behaviour(EvacuateBehaviour())
+        self.add_behaviour(HOFAH())
         
