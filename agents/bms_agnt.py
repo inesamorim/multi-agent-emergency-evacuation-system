@@ -1,6 +1,7 @@
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour
 from spade.behaviour import OneShotBehaviour
+from spade.behaviour import PeriodicBehaviour
 from spade.behaviour import Event
 from spade.template import Template
 from spade.message import Message
@@ -19,6 +20,7 @@ class BMSAgent(Agent):
 
     async def setup(self):
         print(f"Building Management System Agent starting ...")
+        await asyncio.sleep(0.5)
 
     class SendWarnings(OneShotBehaviour):
             async def run(self):
@@ -48,7 +50,7 @@ class BMSAgent(Agent):
 
                 await self.send(msg)
 
-    class ReceiveBuildingPlan(CyclicBehaviour):
+    class ReceiveBuildingPlan(PeriodicBehaviour):
         async def run(self):
             self.current_plan = self.receive_building_plan()
             print(f"BMS is receiving updated building plan...")
@@ -56,10 +58,11 @@ class BMSAgent(Agent):
                 print(f"Plan of floor {floor}:\n")
                 print(self.current_plan[floor])
                 print("\n")
-            await asyncio.sleep(2)
+            #await asyncio.sleep(2)
         
         def receive_building_plan(self):
             return self.agent.environment.send_plan_to_bms()
+        
         
     class SendERToFloor(OneShotBehaviour):
         async def run(self):

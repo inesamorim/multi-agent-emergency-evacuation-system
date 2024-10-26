@@ -22,7 +22,7 @@ BMS has information -> ocupante recebe information -> ocupante faz lista de poss
 Behaviours:
 
 - ER Agents:
-    [x] CheckForUnabledPeople(cyclic) -> num dado floor
+    [] CheckForUnabledPeople(cyclic) -> num dado floor
     [x] GoToFloot(OneShot) -> receive instructions from BMS
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
     [x] GoToBuilding(OneShot)

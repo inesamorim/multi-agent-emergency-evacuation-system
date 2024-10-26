@@ -19,24 +19,20 @@ class ERAgent(Agent):
 
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.5)
 
     class GoToBuilding(OneShotBehaviour):
         async def run(self):
             msg = await self.receive(timeout=10)
             if msg:
                 print(f"ER Agent {self.agent.type} {self.agent.jid} received message from BMS and is coming to the rescue...")
-                task_1 = asyncio.create_task(self.go_to_building()) #continue with other beahviours
-                task_1
             else:
-                print(f"ER Agent {self.type} {self.agent.jid} did not recieve any messages")
+                print(f"ER Agent {self.agent.type} {self.agent.jid} did not recieve any messages")
 
-        async def go_to_building(self):
-            await asyncio.sleep(30)
-            print(f"ER Agent {self.agent.jid} has arrived to the scene")
 
     class GoToFloor(OneShotBehaviour):
         async def run(self):
+            print(f"ER Agent {self.agent.jid} has arrived to the scene")
             msg = await self.receive(timeout=10)
             #msg = "Please go to floor:z"
             if msg:
