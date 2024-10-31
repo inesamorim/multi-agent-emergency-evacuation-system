@@ -35,11 +35,21 @@ class OccupantAgent(Agent):
 
     class LeaveFloor(OneShotBehaviour):
         #quando no quadrado 4(escadas) muda de andar
-        def leave(self, cb: bool=False): #cima baixo  0 desce 1 sobe
+        def leave(self,  chosen_z): #cima baixo  0 desce 1 sobe cb: bool=False,
             x, y, z = self.environment.get_occupant_loc(self.agent.jid)[2]
-    
-            #ver onde é q as escadas calham
-            pass
+            self.floor = self.environment.get_grid(chosen_z)
+            px = [x-2, x-1, x, x+1, x+2]
+            py = [y-2, y-1, y, y+1, y+2]
+
+            poss_loc = []
+
+            
+            ''' 
+            de momento vai apenas assumir q ele sai sempre das escadas(existe sempre espaço)
+            foturamente vai também entregar uma lista de poss_moves
+            '''
+
+            return 
 
 
 
