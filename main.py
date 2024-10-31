@@ -63,14 +63,23 @@ async def main():
         await asyncio.sleep(0.5)
     building_agent.add_behaviour(building_agent.SendWarnings())
 
+    
+
     # Receive building plan
-    building_agent.add_behaviour(building_agent.ReceiveBuildingPlan(period=3))
+    #building_agent.add_behaviour(building_agent.ReceiveBuildingPlan())
+
+    print("foo")
 
     # Evacuate occupants
+    behaviours = []
     for occupant_agent in occupants:
-        occupant_agent.add_behaviour(occupant_agent.EvacuateBehaviour())
+        behav = occupant_agent.add_behaviour(occupant_agent.EvacuateBehaviour())
+        behaviours.append(behav)
         await asyncio.sleep(0.5)
+    
+    group = asyncio.gather(building_agent.add_behaviour(building_agent.ReceiveBuildingPlan()), behaviours)
+    
 
 
 if __name__ == "__main__":
-    spade.run(main())
+    asyncio.run(main())

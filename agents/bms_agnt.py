@@ -50,7 +50,7 @@ class BMSAgent(Agent):
 
                 await self.send(msg)
 
-    class ReceiveBuildingPlan(PeriodicBehaviour):
+    class ReceiveBuildingPlan(CyclicBehaviour):
         async def run(self):
             self.current_plan = self.receive_building_plan()
             print(f"BMS is receiving updated building plan...")
@@ -58,8 +58,8 @@ class BMSAgent(Agent):
                 print(f"Plan of floor {floor}:\n")
                 print(self.current_plan[floor])
                 print("\n")
-            #await asyncio.sleep(2)
-        
+            await asyncio.sleep(3)
+
         def receive_building_plan(self):
             return self.agent.environment.send_plan_to_bms()
         

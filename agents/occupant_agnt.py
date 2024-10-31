@@ -95,8 +95,9 @@ class OccupantAgent(Agent):
     #occorre normalmente está constantemente a ser feita
     class EvacuateBehaviour(CyclicBehaviour):  
         async def run(self):
-            await asyncio.sleep(3)
+            print(f"Occupant {self.agent.jid} is trying to find exit")
             exit_loc = self.closest_exit()
+            print(exit_loc)
             if exit_loc == -1:
                 print(f"Occupant {self.agent.jid} has no available exits in its floor. Searching for another option\n")
 
@@ -105,16 +106,22 @@ class OccupantAgent(Agent):
                 x, y = exit_loc
                 if self.agent.environment.get_grid(z)[x][y] == 5:
                     print("There is an obstacle in the closest exit.\n")
+                    
                 elif self.agent.environment.get_grid(z)[x][y] == 6:
                     if self.agent.environment.get_exit_status((x,y,z)) == 'open':
                         print(f"Exit in {(x,y,z)} is open,occupant {self.agent.jid} moving into it...\n")
-                        self.agent.environment.update_occupant_position(agent_id=self.agent.jid, new_x=x, new_y=y, new_z=z)
+                        #pessoa tem que desaparecer
+                        #self.agent.environment.update_occupant_position(agent_id=self.agent.jid, new_x=x, new_y=y, new_z=z)
+                        self.agent.environment.person_is_safe(self.agent.jid)
+                        print(f"Occupant {self.agent.jid} left the building safely\n")
+                        await self.agent.stop()
                     else:
                         print(f"Exit in {(x,y,z)} is closed. Occupant {self.agent.jid} is finding another options...")
 
             await asyncio.sleep(2)
         
         def closest_exit(self):
+            """retorna a saída mais próxima"""
             x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
             possible_exits = self.agent.environment.get_exit_loc(z)
 

@@ -62,10 +62,10 @@ class Environment:
         self.elevator = 'on'
 
         #ER AGENTS INFO
-        self.er_loc = {"eragent0@localhost": (0,0,0),
-                       "eragent1@localhost": (0,0,0),
-                       "eragent2@localhost": (0,0,0),
-                       "eragent3@localhost": (0,0,0)}
+        self.er_loc = {"eragent0@localhost": (1,0,0),
+                       "eragent1@localhost": (1,0,0),
+                       "eragent2@localhost": (1,0,0),
+                       "eragent3@localhost": (1,0,0)}
         self.er_type = {"eragent0@localhost": 'firefighter',
                        "eragent1@localhost": 'firefighter',
                        "eragent2@localhost": 'paramedic',
@@ -145,6 +145,12 @@ class Environment:
 
     def get_occupant_state(self, occupant_id):
         return self.occupants_health[str(occupant_id)]
+    
+    def person_is_safe(self, occupant_id):
+        x, y, z = self.occupants_loc[str(occupant_id)]
+        self.building[z][x][y] = 0
+        del self.occupants_loc[str(occupant_id)]
+        del self.occupants_health[str(occupant_id)]
     
     def update_occupant_position(self, agent_id, new_x, new_y, new_z):
         # Verifique se o agente está no dicionário antes de tentar acessar
