@@ -148,7 +148,7 @@ class OccupantAgent(Agent):
             x1, y1, z = self.agent.environment.get_occupant_loc(self.agent.jid)
             if occupant_state == 0:
                 #cant move more than 1 step /cell
-                if np.sqrt((x-x1)**2) == 2 or np.sqrt((y-y1)**2) == 2:
+                if np.sqrt((x-x1)**2) > 1 or np.sqrt((y-y1)**2) > 1:
                     return False
                 
             return True
@@ -163,6 +163,7 @@ class OccupantAgent(Agent):
                 3->escadas
                 4->pessoas
                 5->obstáculos
+                6->saída
             '''
 
             x1 = [x-2, x-1, x, x+1, x+1]
@@ -176,7 +177,7 @@ class OccupantAgent(Agent):
 
         def get_distance(self, x, y):
             #exits_loc = função q devolve a loc das escadas e janelas(se andar 0) do andar(z)
-            z = self.floor
+            z = self.agent.floor
             dist = len(self.environmment.get_grid(z)) + 1
             for exit in self.environment.get_exit_loc(z):
                 d = np.sqrt((exit[0] - x)**2 + (exit[1] - y)**2)

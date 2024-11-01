@@ -21,13 +21,18 @@ class ERAgent(Agent):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
         await asyncio.sleep(0.5)
 
+
     class GoToBuilding(OneShotBehaviour):
         async def run(self):
             msg = await self.receive(timeout=10)
             if msg:
                 print(f"ER Agent {self.agent.type} {self.agent.jid} received message from BMS and is coming to the rescue...")
+                await asyncio.create_task(self.sleep(30)) #time to get to the building
             else:
                 print(f"ER Agent {self.agent.type} {self.agent.jid} did not recieve any messages")
+            
+        async def sleep(self, time):
+            await asyncio.sleep(time)
 
 
     class GoToFloor(OneShotBehaviour):
@@ -40,8 +45,13 @@ class ERAgent(Agent):
                 floor = int(msg_received.split(":")[-1].strip())
                 x, y, z = self.agent.environment.get_stair_loc(floor)[0]
                 self.agent.environment.update_er_position(self.agent.jid, x,y,z)
+                
             else:
                 print(f"ER Agent {self.agent.jid} did not receive any information")
+        async def sleep(self, time):
+            await asyncio.sleep(time)
+
+        
             
 
     class CheckForHealthState(CyclicBehaviour):
@@ -57,6 +67,16 @@ class ERAgent(Agent):
                 asyncio.create_task(self.sleep(10))
 
                 await self.send(msg)
-
         async def sleep(self, time):
             await asyncio.sleep(time)
+
+
+    class ReceiveHealthState(CyclicBehaviour):
+        async def run(self):
+            self.receive_health_state()
+        async def receive_health_state(self):
+            msg = await self.receive(timeout=10)
+            #msg: "I am: Occupanti@localhost; My Health State is: x"
+            if msg:
+                print("foo")
+                #...

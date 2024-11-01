@@ -84,6 +84,11 @@ class BMSAgent(Agent):
             # assumindo que bombeiros passam fogo...
             num_floors = self.agent.environment.get_num_of_floors()
             num_er_agents = len(self.agent.envrionment.get_er_loc())
-            #se a divisão inteira num_agents pelo num_floors tiver resto, os agents a mais ficam à espera de info?
+            #se a divisão inteira de num_agents pelo num_floors tiver resto, os agents a mais ficam à espera de info?
             agents_per_floor = num_er_agents // num_floors
             return agents_per_floor
+
+    class HelpWithOccupantsRoute(CyclicBehaviour):
+        async def run(self):
+            print("foo")
+            await asyncio.create_task(asyncio.sleep(5))

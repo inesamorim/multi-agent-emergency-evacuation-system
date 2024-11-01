@@ -56,12 +56,15 @@ async def main():
         er_agent.add_behaviour(er_agent.GoToBuilding())
         await asyncio.sleep(0.5)
     building_agent.add_behaviour(building_agent.CallER())
+    await asyncio.sleep(0.5)
+    
 
     # Send warnings to occupants
     for occupant_agent in occupants:
         occupant_agent.add_behaviour(occupant_agent.ReceiveWarning())
         await asyncio.sleep(0.5)
     building_agent.add_behaviour(building_agent.SendWarnings())
+    await asyncio.sleep(0.5)
 
     
 
