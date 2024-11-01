@@ -33,13 +33,6 @@ class OccupantAgent(Agent):
                 else: 
                     print(f"Occupant {self.agent.jid} did not receive any messages")
 
-    class LeaveFloor(OneShotBehaviour):
-        #quando no quadrado 4(escadas) muda de andar
-        def leave(self, cb: bool=False): #cima baixo  0 desce 1 sobe
-            x, y, z = self.environment.get_occupant_loc(self.agent.jid)[2]
-    
-            #ver onde é q as escadas calham
-            pass
 
 
 
@@ -156,7 +149,7 @@ class OccupantAgent(Agent):
         def possible_moves(self):
             x,y,z = self.agent.environment.get_occupant_loc(self.agent.jid)
             grid_z = self.agent.environment.get_grid(z) #no futuro alterar para BMS.get_floor(z) ->return grid
-
+            
             ''' 
                 1->portas 
                 2->janelas
@@ -173,7 +166,17 @@ class OccupantAgent(Agent):
                 for j in range(5):
                     if self.is_possible_move(x1[i],y1[j], grid_z):
                         possible_moves.append(x1[i], y1[j])
-            return possible_moves
+
+
+
+            #encurtar a lista até o poss_move == curr_move
+            filtered_coordinates = []
+            for coord in possible_moves:
+                filtered_coordinates.append(coord)
+                if coord == [x,y]:
+                    break  
+
+            return filtered_coordinates
 
         def get_distance(self, x, y):
             #exits_loc = função q devolve a loc das escadas e janelas(se andar 0) do andar(z)
@@ -189,11 +192,35 @@ class OccupantAgent(Agent):
             distances = [0 for i in range(len(possible_moves))]
 
             #ver dist de cada poss à saida mais proxima e adequar priority list dessa forma
+            #encortar a lista para ir até a poss atual
             for i in range(len(possible_moves)):
                 distances[i] = self.get_distance(possible_moves[i][0], possible_moves[i][1])
 
             sorted_coordinates = [[coord for coord, dist in sorted(zip(possible_moves, distances), key=lambda x: x[1])]]
             return sorted_coordinates
+        
+        #quando no quadrado 4(escadas) muda de andar
+        def leavefloor(self,  chosen_z): #cima baixo  0 desce 1 sobe cb: bool=False,
+            x, y, z = self.environment.get_occupant_loc(self.agent.jid)[2]
+            self.floor = self.environment.get_grid(chosen_z)
+            self.agent.environment.update_occupant_position(self.agent.jid, x, y, chosen_z)#desce as escadas fora do tempo
+            x1 = [x-2, x-1, x, x+1, x+2]
+            y1 = [y-2, y-1, y, y+1, y+2]
+
+            possible_moves = []
+            for i in range(5):
+                for j in range(5):
+                    if (x==x1[i] and y==y1[j]):
+                        pass
+                    if self.is_possible_move(x1[i],y1[j], self.floor):
+                        possible_moves.append(x1[i], y1[j])
+
+            #retorna locais onde possa ficar 
+            return possible_moves
+            
+
+
+
 
     
     
