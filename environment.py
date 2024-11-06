@@ -83,6 +83,9 @@ class Environment:
         grid = self.building[floor]
         return grid
     
+    def get_building(self):
+        return self.building
+    
     def send_plan_to_bms(self):
         return self.building
     

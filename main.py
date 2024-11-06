@@ -71,16 +71,18 @@ async def main():
     # Receive building plan
     #building_agent.add_behaviour(building_agent.ReceiveBuildingPlan())
 
-    print("foo")
-
-    # Evacuate occupants
     behaviours = []
+
+    behaviours.append(building_agent.add_behaviour(building_agent.ReceiveBuildingPlan()))
+    # Evacuate occupants
     for occupant_agent in occupants:
         behav = occupant_agent.add_behaviour(occupant_agent.EvacuateBehaviour())
         behaviours.append(behav)
         await asyncio.sleep(0.5)
     
-    group = asyncio.gather(building_agent.add_behaviour(building_agent.ReceiveBuildingPlan()), behaviours)
+    behaviours.append(building_agent.add_behaviour(building_agent.HelpWithOccupantsRoute()))
+    
+    await asyncio.gather(*behaviours)
     
 
 

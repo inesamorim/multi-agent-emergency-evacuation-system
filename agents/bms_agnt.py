@@ -11,6 +11,7 @@ from environment import Environment
 import time
 import numpy as np
 import copy
+import ast
 
 class BMSAgent(Agent):
     def __init__(self, jid, password, environment:Environment):
@@ -102,24 +103,27 @@ class BMSAgent(Agent):
                     # Extrai o occupant_id e a lista de preferências da mensagem
                     content = msg.body
                     occupant_id = content.split(";")[0].split(":")[-1].strip()
-                    hierarchy = content.split(";")[-1].split(":")[-1].strip()
+                    hierarchy_str = content.split(";")[-1].split(":")[-1].strip()
+                    hierarchy = ast.literal_eval(hierarchy_str)
             
                     # Armazena a lista de preferências no dicionário
                     preferences[occupant_id] = hierarchy
-                    print(f"Preferências recebidas de {occupant_id}: {hierarchy}")
+                    print(f"Preferences of {occupant_id} received: {hierarchy}")
                 else:
-                    print("Algumas mensagens não foram recebidas a tempo.")
+                    print("Didn't receive any messages")
                     break
 
 
             # Verifica se todas as preferências foram recebidas
             if len(preferences) == num_occupants:
                 # Faz uma cópia profunda da grid
-                grid_copy = copy.deepcopy(self.agent.environment.grid())
-                print("Cópia profunda da grid criada para processamento.")
+                grid_copy = copy.deepcopy(self.agent.environment.get_building())
+                print("Deep copy created.")
 
                 # Realiza lógica para determinar o próximo movimento com base nas preferências
                 await self.process_moves(preferences, grid_copy)
+            
+            await asyncio.sleep(2)
 
         async def process_moves(self, preferences, grid_copy):
             print("Processando as preferências dos ocupantes...")
@@ -127,10 +131,13 @@ class BMSAgent(Agent):
             occupied_positions = set() #keep up with occupied positions
 
             for occupant_id, hierarchy in preferences.items():
+                hierarchy = hierarchy[0]
+                #print(f"hierarchy: {hierarchy}")
                 for preferred_move in hierarchy:
                     #check if its available
                     if preferred_move not in occupied_positions:
                         final_positions[occupant_id] = preferred_move
+                        print(f"New position for {occupant_id}: {preferred_move}")
                         occupied_positions.add(preferred_move)
                         break
                     else:
