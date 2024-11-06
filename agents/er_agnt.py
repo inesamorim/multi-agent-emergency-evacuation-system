@@ -73,10 +73,12 @@ class ERAgent(Agent):
 
     class ReceiveHealthState(CyclicBehaviour):
         async def run(self):
+            to_help_list = []
             while True:  # Continuously listen for messages
-                await self.receive_health_state()
+                await self.receive_health_state(to_help_list)
+
             
-        async def receive_health_state(self):
+        async def receive_health_state(self, to_help_list):
             msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
             
             if msg:
@@ -102,6 +104,7 @@ class ERAgent(Agent):
                     occ = [health_state, id_part, x, y, z]
                     
                     print("Agent data array:", occ)
+                    to_help_list.append(occ)
                     
                 except IndexError as e:
                     print("Failed to parse message. Make sure the message format is correct:", e)
