@@ -25,7 +25,9 @@ Behaviours:
     [] CheckForUnabledPeople(cyclic) -> num dado floor
     [x] GoToFloot(OneShot) -> receive instructions from BMS
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
-    [x] GoToBuilding(OneShot)
+    [x] GoToBuilding(OneShot) 
+    [] GetOcc -> cada ER é responsável de apanhar um occ, ver caminho, guarda id
+    [] AbductionOfOcc -> apanha um occupante para o poder levar para segurânca
     [] Cure(OneShot) -> if health == 1: occupant is curable (será uma classe dentro da classe ReceiveHealthCheck?????)
     [] SaveThroughWindow(Cyclic) -> if health == 0 and no exits or stairs
     [] PutOutFire(OneShot) -> só no fim porque fumos tóxicos
