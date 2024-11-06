@@ -73,10 +73,39 @@ class ERAgent(Agent):
 
     class ReceiveHealthState(CyclicBehaviour):
         async def run(self):
-            self.receive_health_state()
+            while True:  # Continuously listen for messages
+                await self.receive_health_state()
+            
         async def receive_health_state(self):
-            msg = await self.receive(timeout=10)
-            #msg: "I am: Occupanti@localhost; My Health State is: x"
+            msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
+            
             if msg:
-                print("foo")
-                #...
+                # Assuming msg.body contains the message text
+                content = msg.body  # or msg.content, depending on the message library
+                
+                # Split the message by semicolons to isolate sections
+                parts = content.split(";")
+                
+                try:
+                    # Extract `id`
+                    id_part = parts[0].split(":")[1].strip()
+                    
+                    # Extract `position` (x, y, z) - splitting by `:` and `,`
+                    position_part = parts[1].split(":")[1].strip()
+                    x, y, z = map(int, position_part.strip("()").split(","))
+                    
+                    # Extract `health state`
+                    health_state_part = parts[2].split(":")[1].strip()
+                    health_state = int(health_state_part)
+                    
+                    # Create the array with agent data
+                    occ = [health_state, id_part, x, y, z]
+                    
+                    print("Agent data array:", occ)
+                    
+                except IndexError as e:
+                    print("Failed to parse message. Make sure the message format is correct:", e)
+                except ValueError as e:
+                    print("Failed to convert data to integers. Check the data format:", e)
+
+
