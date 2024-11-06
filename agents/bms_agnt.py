@@ -10,6 +10,7 @@ import spade
 from environment import Environment
 import time
 import numpy as np
+import copy
 
 class BMSAgent(Agent):
     def __init__(self, jid, password, environment:Environment):
@@ -90,7 +91,63 @@ class BMSAgent(Agent):
 
     class HelpWithOccupantsRoute(CyclicBehaviour):
         async def run(self):
-            print("foo")
-            await asyncio.create_task(asyncio.sleep(5))
+            preferences = {}
+            num_occupants = len(self.agent.environment.get_all_occupants_loc())
+
+            print("Waiting for occupants preferences")
+
+            while len(preferences) < num_occupants:
+                msg = await self.receive(timeout=10)
+                if msg:
+                    # Extrai o occupant_id e a lista de preferências da mensagem
+                    content = msg.body
+                    occupant_id = content.split(";")[0].split(":")[-1].strip()
+                    hierarchy = content.split(";")[-1].split(":")[-1].strip()
+            
+                    # Armazena a lista de preferências no dicionário
+                    preferences[occupant_id] = hierarchy
+                    print(f"Preferências recebidas de {occupant_id}: {hierarchy}")
+                else:
+                    print("Algumas mensagens não foram recebidas a tempo.")
+                    break
+
+
+            # Verifica se todas as preferências foram recebidas
+            if len(preferences) == num_occupants:
+                # Faz uma cópia profunda da grid
+                grid_copy = copy.deepcopy(self.agent.environment.grid())
+                print("Cópia profunda da grid criada para processamento.")
+
+                # Realiza lógica para determinar o próximo movimento com base nas preferências
+                await self.process_moves(preferences, grid_copy)
+
+        async def process_moves(self, preferences, grid_copy):
+            print("Processando as preferências dos ocupantes...")
+            final_positions = {}
+            occupied_positions = set() #keep up with occupied positions
+
+            for occupant_id, hierarchy in preferences.items():
+                for preferred_move in hierarchy:
+                    #check if its available
+                    if preferred_move not in occupied_positions:
+                        final_positions[occupant_id] = preferred_move
+                        occupied_positions.add(preferred_move)
+                        break
+                    else:
+                        final_positions[occupant_id] = None
+            
+            #Send new positions to occupants
+            for occupant_id, position in final_positions.items():
+                await self.send_move_instruction(occupant_id, position)
+
+        async def send_move_instruction(self, occupant_id, position):
+            msg = Message(to=occupant_id)
+            msg.set_metadata("performative", "inform")
+            if position:
+                msg.body = f"Go to new position: {position}"
+                print(f"Sending new position {position} to occupant {occupant_id}.")
+            
+            await self.send(msg)
+            
         
-        async def
+        
