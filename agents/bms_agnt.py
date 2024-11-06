@@ -92,3 +92,5 @@ class BMSAgent(Agent):
         async def run(self):
             print("foo")
             await asyncio.create_task(asyncio.sleep(5))
+        
+        async def
