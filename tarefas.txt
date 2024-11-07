@@ -25,9 +25,15 @@ Behaviours:
     [] CheckForUnabledPeople(cyclic) -> num dado floor
     [x] GoToFloot(OneShot) -> receive instructions from BMS
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
+    [] GetCrue -> see how else with get comerads
+        destribut per crue -> dar a outros agents uma lista de pessoas para ajudar no piso 
+        triagem -> ordenar por importância
     [x] GoToBuilding(OneShot) 
     [] GetOcc -> cada ER é responsável de apanhar um occ, ver caminho, guarda id
-    [] AbductionOfOcc -> apanha um occupante para o poder levar para segurânca
+    [x?] AbductionOfOcc -> apanha um occupante para o poder levar para segurânca
+        deve ser usada ou quando chaga a uma saída ou 
+        se occ tiver health == 1 larga-no no sítio mais seguro mais proximo(mandá-lo para o sítio mais prox e livre)
+
     [] Cure(OneShot) -> if health == 1: occupant is curable (será uma classe dentro da classe ReceiveHealthCheck?????)
     [] SaveThroughWindow(Cyclic) -> if health == 0 and no exits or stairs
     [] PutOutFire(OneShot) -> só no fim porque fumos tóxicos
@@ -140,3 +146,5 @@ ENVIRONMENT
 COORDINATION AND COMMUNICATION
 EVACUATION STRATEGIES
 PERFORMANCE METRICS
+
+ -> 

@@ -19,7 +19,8 @@ class ERAgent(Agent):
         ###### BOB WAS HERE ######
         self.helping = hellping #se está a transportar alguém
         self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]}
-        self.floor = self.environment.send_plan_to_bms()  #ou recebem o andar onde estão ou recebem a grid toda
+        self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
+        self.occupant_info = Null
 
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
@@ -137,21 +138,21 @@ class ERAgent(Agent):
                     self.to_help_list.remove(self.agent_data)   
 
     class SaveThroughWindow(CyclicBehaviour):
-    def __init__(self, agent_data, exits_available, stairs_available):
-        super().__init__()
-        self.agent_data = agent_data
-        self.exits_available = exits_available   ##
-        self.stairs_available = stairs_available ##
+        def __init__(self, agent_data, exits_available, stairs_available):
+            super().__init__()
+            self.agent_data = agent_data
+            self.exits_available = exits_available   ##
+            self.stairs_available = stairs_available ##
 
-    async def run(self):
-        agent_id, health, x, y, z = self.agent_data
-        if health == 0 and not self.exits_available and not self.stairs_available:
-            print(f"Agent {agent_id} was saved through the window")
+        async def run(self):
+            agent_id, health, x, y, z = self.agent_data
+            if health == 0 and not self.exits_available and not self.stairs_available:
+                print(f"Agent {agent_id} was saved through the window")
 
-            self.kill()
-        else:
-            print(f"Agent {agent_id} is waiting for an available exit or stairs")
-            await self.agent.async_sleep(2)
+                self.kill()
+            else:
+                print(f"Agent {agent_id} is waiting for an available exit or stairs")
+                await self.agent.async_sleep(2)
 
 
     class AbductionOfOcc(OneShotBehaviour):
@@ -175,11 +176,11 @@ class ERAgent(Agent):
             self.helping = True
             
             # Retrieve occupant's info and print or store it as needed
-            occupant_info = self.occupants[occupant_id]
-            print("Abducting occupant:", occupant_info)
+            self.occupant_info = self.occupants[occupant_id]
+            print("Abducting occupant:", self.occupant_info)
             
             # Update grid (e.g., setting position to `None` if using a 2D array or removing the key in a dict)
-            self.environment.update_occupant_position(occupant_id, 0, 0, 0) #tentar assumir q está fora da grid
+            self.environment.update_occupant_position(occupant_id, -1, -1, -1) #tentar assumir q está fora da grid
             
             # Optionally, remove occupant from the occupants dictionary
             del self.occupants[occupant_id]
@@ -191,7 +192,47 @@ class ERAgent(Agent):
         ############################################################################
         
 
+        async def poss_drop(self,x, y, grid):
+            if x < 0 or y < 0 or x >= len(grid[0]) or y >= len(grid[0]):
+                #fora da grid
+                return False
+            
+            if (grid[x][y]!=0)or(grid[x][y]!=3):
+                #obstaculo
+                return False
+            
+            return True
+            
+
+        async def where_to_drop(self):
+            x, y, z = self.agent.environment.get_er_loc(self.agent.jid)
+            x1 = [x-1,x,x+1]
+            y1 = [y-1,y,y+1]
+            grid =  self.agent.environment.get_grid(z)
+
+            for i in range(3):
+                for j in range(3):
+                    if self.poss_drop(x1[i],y1[j], grid):
+                        return x1[i], y1[j], z
+            
+            return -1
+
         async def releace_hostege(self):
             #quando em segurança liberta a pessoa 
-            pass
+            #se a pessoa está a 0 só quando na exit é q é dropada
+            #se 1 quando numa área determinada como não afetada (DEC)
+            #vai ter de procurar o sítio mais prox para dar drop
+
+            # get_exit_loc(self,floor)
+            # get_er_loc(self, er_id)
+            x, y, z = self.agent.environment.get_er_loc(self.agent.jid)
+            if not([x,y] in self.agent.environment.get_exit_loc(z)):
+                #dropping action occurs faster than moving
+                if self.where_to_drop() == -1:
+                    return -1
+                x1, y1, z1 = self.where_to_drop()
+                self.environment.update_occupant_position(self.occupant_info, x1, y1, z1)
+
+            #else deu drop na saída poss de occ não altera
+            self.helping = False
 
