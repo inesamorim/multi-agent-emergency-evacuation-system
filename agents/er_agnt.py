@@ -20,7 +20,7 @@ class ERAgent(Agent):
         self.helping = hellping #se está a transportar alguém
         self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]}
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
-        self.occupant_info = Null
+        self.occupant_info = self.Null
 
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
