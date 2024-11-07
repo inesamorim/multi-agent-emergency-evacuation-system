@@ -111,10 +111,48 @@ class ERAgent(Agent):
                     print("Agent data array:", occ)
                     to_help_list.append(occ)
                     
+                    if health_state==1: #agent é curável
+                        cure_behaviour = self.Cure(occ)
+                        self.agent.add_behaviour(cure_behaviour)
+
                 except IndexError as e:
                     print("Failed to parse message. Make sure the message format is correct:", e)
                 except ValueError as e:
                     print("Failed to convert data to integers. Check the data format:", e)
+
+        class Cure(OneShotBehaviour):
+            def __init__(self, agent_data):
+                super().__init__()
+                self.agent_data=agent_data
+                self.to_help_list=to_help_list
+
+            async def run(self):
+                agent_id, health, x, y, z = self.agent_data
+                print(f"Attempting to cure agent {agent_id} with health state {health}")
+
+                self.agent_data[1]=0 #curado, health_state=0 (?)
+                print(f"Agent {agent_id} has been cured")
+
+                if self.agent_data in self.to_help_list:
+                    self.to_help_list.remove(self.agent_data)   
+
+    class SaveThroughWindow(CyclicBehaviour):
+    def __init__(self, agent_data, exits_available, stairs_available):
+        super().__init__()
+        self.agent_data = agent_data
+        self.exits_available = exits_available   ##
+        self.stairs_available = stairs_available ##
+
+    async def run(self):
+        agent_id, health, x, y, z = self.agent_data
+        if health == 0 and not self.exits_available and not self.stairs_available:
+            print(f"Agent {agent_id} was saved through the window")
+
+            self.kill()
+        else:
+            print(f"Agent {agent_id} is waiting for an available exit or stairs")
+            await self.agent.async_sleep(2)
+
 
     class AbductionOfOcc(OneShotBehaviour):
 
@@ -156,7 +194,4 @@ class ERAgent(Agent):
         async def releace_hostege(self):
             #quando em segurança liberta a pessoa 
             pass
-            
-        
-
 
