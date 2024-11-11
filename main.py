@@ -2,6 +2,7 @@ from environment import Environment
 from agents import occupant_agnt, er_agnt, bms_agnt
 import spade
 import asyncio
+import time
 
 async def main():
     # Create and initialize the environment
@@ -11,8 +12,6 @@ async def main():
         await agent.start(auto_register=True)
         await environment.queue.put(agent)
 
-    async def enqueue_behaviour(agent, behaviour):
-        await environment.queue.put((agent, behaviour))
 
     #Start 5 occupant agents
     occupants = []

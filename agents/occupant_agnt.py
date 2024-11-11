@@ -91,18 +91,25 @@ class OccupantAgent(Agent):
 
             if response:
                 print(response.body)
-                self.process_move(response.body)
+                await self.process_move(response.body)
             else:
                 print(f"Occupant {self.agent.jid} didn't receive any info from BMS")
 
             await asyncio.sleep(2)
 
-        def process_move(self, new_postition):
+        async def process_move(self, new_postition):
             if "new position" in new_postition:
                 pos_str = new_postition.split(':')[-1].strip()
                 pos = ast.literal_eval(pos_str)
                 print(f"Occupantt {self.agent.jid} is moving to new position {pos}")
-                self.agent.environment.update_occupant_position(self.agent.jid, *pos)
+                exits = self.agent.environment.get_all_exits_loc()
+                if pos in exits:
+                    #leave building
+                    self.agent.environment.leave_building(self.agent.jid)
+                    print(f"Occupant {self.agent.jid} left the building safely")
+                    await self.agent.stop()
+                else:
+                    self.agent.environment.update_occupant_position(self.agent.jid, *pos)
 
                 #TODO: check if occupant has to leave floor or building
             else:
@@ -248,12 +255,14 @@ class OccupantAgent(Agent):
             z = self.agent.floor
             grid = self.agent.environment.get_grid(z)
             #search for closest exit
-            dist = len(grid) + 1
+            print(len(grid))
+            dist = np.sqrt((len(grid))**2 * 2)+1
             for exit in self.agent.environment.get_exit_loc(z):
                 d = np.sqrt((exit[0] - x)**2 + (exit[1] - y)**2)
                 if d<dist:
                     dist = d
-            if dist == len(grid) + 1:
+            if dist >= np.sqrt((len(grid))**2 *2)+1:
+                print("foo")
                 #no exits 
                 # search for closest stairs
                 for stairs in self.agent.environment.get_stairs_loc(z):
@@ -270,6 +279,8 @@ class OccupantAgent(Agent):
             #encortar a lista para ir até a poss atual
             for i in range(len(possible_moves)):
                 distances[i] = self.get_distance(possible_moves[i][0], possible_moves[i][1]) #lista de distâncias à saída mais próxima ou escadas mais próximas
+            
+            print(f"{self.agent.jid}: {possible_moves} {np.round(distances, 2)}")
 
             sorted_coordinates = [[coord for coord, dist in sorted(zip(possible_moves, distances), key=lambda x: x[1])]]
             return sorted_coordinates
