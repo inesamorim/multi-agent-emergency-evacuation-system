@@ -22,9 +22,23 @@ BMS has information -> ocupante recebe information -> ocupante faz lista de poss
 Behaviours:
 
 - ER Agents:
-    [] CheckForUnabledPeople(cyclic) -> num dado floor
     [x] GoToFloot(OneShot) -> receive instructions from BMS
+    [] CheckForUnabledPeople(cyclic) -> num dado floor
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
+                                    o primeiro ER a chegar ao piso vai continuamente receber info
+                                    Talvez criar um lider do andar entre os ER
+                                        ->typr(n, lider Bool)
+                                    "vê" quem necessita de ajuda 
+                                    "vê" quem são os ER do piso 
+                                    diz a qual ER o q fazer(lista de pessoas para socorrer)
+
+                                    lideres podem comunicar entre floor e BMS
+                                    se um andar necessitar de mais ajuda 
+                                    lider avisa BMS
+                                    se houver mais ER do q feridos 
+                                    lider avisa BMS
+
+  
     [] GetCrue -> see how else with get comerads
         destribut per crue -> dar a outros agents uma lista de pessoas para ajudar no piso 
         triagem -> ordenar por importância
