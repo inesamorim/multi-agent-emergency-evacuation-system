@@ -12,7 +12,7 @@ import numpy as np
 
 
 class ERAgent(Agent):
-    def __init__(self, jid, password, environment:Environment, type, hellping: False, go_inside):
+    def __init__(self, jid, password, environment:Environment, type, hellping: False):
         super().__init__(jid, password)
         self.environment = environment
         self.type = type
@@ -22,10 +22,7 @@ class ERAgent(Agent):
         self.floor = self.environment.send_plan_to_bms()  #ou recebem o andar onde estão ou recebem a grid toda
         self.busy = False
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
-        self.occupant_info = self.Null
-        self.cap_of_floor = False #responsável por dit of ER on floor
-        self.list_to_rule = self.Null # se capitão recebe info dos ER q estão no andar
-        self.in_building = go_inside #ver se entrou no edifício
+        self.occupant_info = None
 
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
@@ -237,11 +234,50 @@ class ERAgent(Agent):
     #to create a cap, to remove a cap, to comunicate t cap, to order non cap
 
     class KarenOfFloor(CyclicBehaviour):
+        '''
+        numa primeira fase cada ER é mandado para uma poss(guardar o ocal de salvamento?)
+        o cap guarda a équipa de salvamento(todos os ER alocados para o andar)
 
-        def __init__(self, cap=False):
-            super().__init__(cap)
-            if not self.cap:
-                raise ValueError("CyclicBehaviour can only be instantiated if cap is True.")
+        chama pelos occ
+        recebe list de occ
+        divide équipa presente para salvar occ
+        vê se necessita de ajuda ou se tem a mais
+        convoca para outros ER ou BMS se necessita de mais pessoas ou se pode dar
+        unc de trocar de andar um ER (recive, send)
+        tem func
+        '''
+            
+        async def run(self):
+            # Check if self.cap from the outer ER class is True
+            if self.cap:
+                # Perform actions only if cap is True
+                print("KarenOfFloor is active and performing tasks.")
+
+                #continuamente 2 em 2 seg obter pessoas e ER da équipa 
+                #só saem da équipa com transfer  
+                #CheckForHealthState, ReceiveHealthState
+                
+            else:
+                print("KarenOfFloor is inactive due to cap being False.")
+
+        
+        async def get_team(self):
+            #update de 2 em 2 seg
+            pass
+
+        async def trafg_ER_to(slef, er_id):
+            #altera team
+            #altera vall para onde er_id foi alocado
+            #se get_team for constantemente atualizada não necessita de trafg_ER_from()
+            pass
+
+        async def its_hero_time(self):
+            ''' 
+            usando a lista de pessoas  e os ER do andar 
+            (chamada sempre q é notado alterações de nº de ER ou DEC causa mt estrago)
+            '''
+            pass
+
             
         #vai continuamente saber quem já foi salvo e onde está toda a gente
             

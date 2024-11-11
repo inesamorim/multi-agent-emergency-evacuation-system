@@ -210,10 +210,10 @@ class Environment:
         return self.er_type
     
     def get_er_role(self, er_id):
-        return self.er_type[str(er_id)]
+        return self.er_role[str(er_id)]
         
     def get_all_er_roles(self):
-        return self.er_type
+        return self.er_role
     
     def update_er_position(self, agent_id, new_x, new_y, new_z):
         # Verifique se o agente está no dicionário antes de tentar acessar

@@ -22,6 +22,9 @@ BMS has information -> ocupante recebe information -> ocupante faz lista de poss
 Behaviours:
 
 - ER Agents:
+    na rota de salvamento paramedicos entagnam o estádo de doença de occ(não sofrem mais dano)
+    e firefighters levam os doentes   (quando não há mais doentes para estagnar, dependendo do estado do resto eles podem levar doentes)
+
     [x] GoToFloot(OneShot) -> receive instructions from BMS
     [] CheckForUnabledPeople(cyclic) -> num dado floor
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
