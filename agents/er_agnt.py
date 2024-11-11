@@ -20,6 +20,7 @@ class ERAgent(Agent):
         self.helping = hellping #se está a transportar alguém
         self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]}
         self.floor = self.environment.send_plan_to_bms()  #ou recebem o andar onde estão ou recebem a grid toda
+        self.busy = False
 
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
@@ -31,30 +32,21 @@ class ERAgent(Agent):
             msg = await self.receive(timeout=10)
             if msg:
                 print(f"ER Agent {self.agent.type} {self.agent.jid} received message from BMS and is coming to the rescue...")
-                await asyncio.create_task(self.sleep(30)) #time to get to the building
+                await asyncio.sleep(30)
+                print(f"ER Agent {self.agent.jid} has arrived to the scene")
+                msg = await self.receive(timeout=10)
+                #msg = "Please go to floor:z"
+                if msg:
+                    msg_received = msg.body
+                    floor = int(msg_received.split(":")[-1].strip())
+                    x, y, z = self.agent.environment.get_stair_loc(floor)[0]
+                    self.agent.environment.update_er_position(self.agent.jid, x,y,z)
+                    
+                else:
+                    print(f"ER Agent {self.agent.jid} did not receive any information")
+
             else:
                 print(f"ER Agent {self.agent.type} {self.agent.jid} did not recieve any messages")
-            
-        async def sleep(self, time):
-            await asyncio.sleep(time)
-
-
-    class GoToFloor(OneShotBehaviour):
-        async def run(self):
-            print(f"ER Agent {self.agent.jid} has arrived to the scene")
-            msg = await self.receive(timeout=10)
-            #msg = "Please go to floor:z"
-            if msg:
-                msg_received = msg.body
-                floor = int(msg_received.split(":")[-1].strip())
-                x, y, z = self.agent.environment.get_stair_loc(floor)[0]
-                self.agent.environment.update_er_position(self.agent.jid, x,y,z)
-                
-            else:
-                print(f"ER Agent {self.agent.jid} did not receive any information")
-        async def sleep(self, time):
-            await asyncio.sleep(time)
-
         
             
 
@@ -137,21 +129,21 @@ class ERAgent(Agent):
                     self.to_help_list.remove(self.agent_data)   
 
     class SaveThroughWindow(CyclicBehaviour):
-    def __init__(self, agent_data, exits_available, stairs_available):
-        super().__init__()
-        self.agent_data = agent_data
-        self.exits_available = exits_available   ##
-        self.stairs_available = stairs_available ##
+        def __init__(self, agent_data, exits_available, stairs_available):
+            super().__init__()
+            self.agent_data = agent_data
+            self.exits_available = exits_available   ##
+            self.stairs_available = stairs_available ##
 
-    async def run(self):
-        agent_id, health, x, y, z = self.agent_data
-        if health == 0 and not self.exits_available and not self.stairs_available:
-            print(f"Agent {agent_id} was saved through the window")
+        async def run(self):
+            agent_id, health, x, y, z = self.agent_data
+            if health == 0 and not self.exits_available and not self.stairs_available:
+                print(f"Agent {agent_id} was saved through the window")
 
-            self.kill()
-        else:
-            print(f"Agent {agent_id} is waiting for an available exit or stairs")
-            await self.agent.async_sleep(2)
+                self.kill()
+            else:
+                print(f"Agent {agent_id} is waiting for an available exit or stairs")
+                await self.agent.async_sleep(2)
 
 
     class AbductionOfOcc(OneShotBehaviour):

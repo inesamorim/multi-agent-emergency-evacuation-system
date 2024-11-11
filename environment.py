@@ -6,6 +6,7 @@ class Environment:
         self.num_floors = num_floors
 
         self.building = [[[0 for _ in range(grid_size)] for _ in range(grid_size)] for _ in range(num_floors)]
+        self.building.append((-1,-1,-1)); # pos outside of building
 
         self.current_floor = 0
 
@@ -37,6 +38,12 @@ class Environment:
                               "occupant2@localhost": (5,7,0), 
                               "occupant3@localhost": (3,8,0), 
                               "occupant4@localhost": (8,7,0)}
+        """
+        -1 -> morto
+        0 -> n se consegue mexer
+        1 -> mexe-se 1 quadrado, precisa de cura
+        2 -> mexe-se 2 quadrados, is perfectly good
+        """
         self.occupants_health = {"occupant0@localhost": 1, 
                               "occupant1@localhost": 0,
                               "occupant2@localhost": 1, 
@@ -70,6 +77,10 @@ class Environment:
                        "eragent1@localhost": 'firefighter',
                        "eragent2@localhost": 'paramedic',
                        "eragent3@localhost": 'paramedic'}
+        self.er_role = {"eragent0@localhost": False,
+                       "eragent1@localhost": False,
+                       "eragent2@localhost": False,
+                       "eragent3@localhost": False}
         for x,y,z in self.er_loc.values():
             self.building[z][x][y] = 7
         
@@ -95,6 +106,9 @@ class Environment:
             if z == floor:
                 locs.append((x,y))
         return locs
+    
+    def get_all_exits_loc(self):
+        return self.exit_loc
     
     def get_exit_status(self, exit_coords):
         return self.exits_state[exit_coords]
@@ -167,9 +181,25 @@ class Environment:
         self.building[new_z][new_x][new_y] = 4
         return 1
     
+    def leave_building(self, agent_id):
+        x, y, z = self.occupants_loc[str(agent_id)]
+        self.building[z][x][y] = 0
+        self.occupants_loc.pop(str(agent_id))
+        return 1
+    
+    #====================================================EMERGENCY RESPONDERS=======================================#
+
     def get_er_loc(self, er_id):
         return self.er_loc[str(er_id)]
     
+    def get_er_in_floor(self, floor):
+        agents = []
+        for agent in self.er_loc.keys:
+            z = self.er_loc[str(agent)][2]
+            if z == floor:
+                agents.append(agent)
+        return agents
+                
     def get_all_er_locs(self):
         return self.er_loc
 
@@ -178,7 +208,13 @@ class Environment:
     
     def get_all_er_types(self):
         return self.er_type
+    
+    def get_er_role(self, er_id):
+        return self.er_type[str(er_id)]
         
+    def get_all_er_roles(self):
+        return self.er_type
+    
     def update_er_position(self, agent_id, new_x, new_y, new_z):
         # Verifique se o agente está no dicionário antes de tentar acessar
         if str(agent_id) not in self.er_loc:
@@ -190,4 +226,6 @@ class Environment:
         self.building[z][x][y] = 0
         self.building[new_z][new_x][new_y] = 7
         return 1
+    
+    #======================================================================================#
         

@@ -12,6 +12,7 @@ import time
 import numpy as np
 import copy
 import ast
+from spade import run
 
 class BMSAgent(Agent):
     def __init__(self, jid, password, environment:Environment):
@@ -74,6 +75,7 @@ class BMSAgent(Agent):
         async def send_info_to_er(self, agents_per_floor):
             for i in range(0,len(self.agent.environment.er_loc),agents_per_floor):
                 for j in range(i, agents_per_floor):
+                    #flag
                     floor = i
                     msg = Message(to=f"eragent{j}@localhost")
                     msg.set_metadata("performative", "inform")
@@ -97,8 +99,11 @@ class BMSAgent(Agent):
 
             print("Waiting for occupants preferences")
 
+            if(num_occupants == 0):
+                print("All occupants left safely or are dead")
+
             while len(preferences) < num_occupants:
-                msg = await self.receive(timeout=10)
+                msg = await self.receive(timeout=5)
                 if msg:
                     # Extrai o occupant_id e a lista de preferências da mensagem
                     content = msg.body
@@ -114,15 +119,14 @@ class BMSAgent(Agent):
                     break
 
 
-            # Verifica se todas as preferências foram recebidas
-            if len(preferences) == num_occupants:
-                # Faz uma cópia profunda da grid
-                grid_copy = copy.deepcopy(self.agent.environment.get_building())
-                print("Deep copy created.")
-
-                # Realiza lógica para determinar o próximo movimento com base nas preferências
-                await self.process_moves(preferences, grid_copy)
             
+            # Faz uma cópia profunda da grid
+            grid_copy = copy.deepcopy(self.agent.environment.get_building())
+            print("Deep copy created.")
+
+            # Realiza lógica para determinar o próximo movimento com base nas preferências
+            await self.process_moves(preferences, grid_copy)
+        
             await asyncio.sleep(2)
 
         async def process_moves(self, preferences, grid_copy):
