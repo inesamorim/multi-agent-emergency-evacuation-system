@@ -78,6 +78,9 @@ class ERAgent(Agent):
 
 
         async def receive_health_state(self, to_help_list):
+            ''' 
+            se occ tiver no pick da health, não pede ajuda, só foge
+            '''
             msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
 
             if msg:
@@ -248,6 +251,7 @@ class ERAgent(Agent):
         '''
             
         async def run(self):
+
             # Check if self.cap from the outer ER class is True
             if self.cap:
                 # Perform actions only if cap is True
@@ -256,6 +260,9 @@ class ERAgent(Agent):
                 #continuamente 2 em 2 seg obter pessoas e ER da équipa 
                 #só saem da équipa com transfer  
                 #CheckForHealthState, ReceiveHealthState
+
+                #team = 
+                #to_save = 
                 
             else:
                 print("KarenOfFloor is inactive due to cap being False.")
@@ -263,6 +270,8 @@ class ERAgent(Agent):
         
         async def get_team(self):
             #update de 2 em 2 seg
+            #to see if it has changed(died or transfered)
+            #team guarda ids
             pass
 
         async def trafg_ER_to(slef, er_id):
@@ -271,11 +280,16 @@ class ERAgent(Agent):
             #se get_team for constantemente atualizada não necessita de trafg_ER_from()
             pass
 
-        async def its_hero_time(self):
+        async def its_hero_time(self, team, to_save):
             ''' 
             usando a lista de pessoas  e os ER do andar 
             (chamada sempre q é notado alterações de nº de ER ou DEC causa mt estrago)
+
+            to_save = [[id, healf, x, y, z], [id, healf, x, y, z], [id, healf, x, y, z]]
+            ordered by healf draws by dist
             '''
+
+            
             pass
 
             

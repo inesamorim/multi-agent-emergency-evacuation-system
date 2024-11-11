@@ -38,10 +38,13 @@ class OccupantAgent(Agent):
 
 
     class  HOFAH(CyclicBehaviour):
+        ''' 
+        se occ tiver no pick da health, não pede ajuda, só foge
+        '''
         #recebe msg asking for health state
         async def run(self):
             holding_out_for_a_hero = await self.receive(timeout = 15)
-            if holding_out_for_a_hero and (self.agent.elf > -1): #not dead
+            if holding_out_for_a_hero and (self.agent.elf > -1) and (self.agent.elf < 2): #not dead
                 print(f"Occupant {self.agent.jid} received message: {holding_out_for_a_hero.body}")
 
                 #send info to ER agent on that floor
