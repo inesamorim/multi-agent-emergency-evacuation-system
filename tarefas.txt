@@ -26,6 +26,7 @@ Behaviours:
     [] CheckForUnabledPeople(cyclic) -> num dado floor
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
                                     o primeiro ER a chegar ao piso vai continuamente receber info
+                                    dado por BMS?
                                     Talvez criar um lider do andar entre os ER
                                         ->typr(n, lider Bool)
                                     "vê" quem necessita de ajuda 
@@ -38,7 +39,8 @@ Behaviours:
                                     se houver mais ER do q feridos 
                                     lider avisa BMS
 
-  
+    [] AbortMission(OneShot) -> se toda a gente salva ou se não der para salvar mais(determinada por BMS)
+                             
     [] GetCrue -> see how else with get comerads
         destribut per crue -> dar a outros agents uma lista de pessoas para ajudar no piso 
         triagem -> ordenar por importância
@@ -50,6 +52,10 @@ Behaviours:
 
     [] Cure(OneShot) -> if health == 1: occupant is curable (será uma classe dentro da classe ReceiveHealthCheck?????)
     [] SaveThroughWindow(Cyclic) -> if health == 0 and no exits or stairs
+
+                                    Talvez altere
+                                    nandom ER mantêm-se fora, e é com ele que comunica o ER que quer usar a janela
+                                    insideB(type: Bool)
     [] PutOutFire(OneShot) -> só no fim porque fumos tóxicos
 
 - Occupants:

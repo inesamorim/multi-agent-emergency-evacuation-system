@@ -12,7 +12,7 @@ import numpy as np
 
 
 class ERAgent(Agent):
-    def __init__(self, jid, password, environment:Environment, type, hellping=False):
+    def __init__(self, jid, password, environment:Environment, type, hellping: False, go_inside):
         super().__init__(jid, password)
         self.environment = environment
         self.type = type
@@ -21,6 +21,9 @@ class ERAgent(Agent):
         self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]}
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
         self.occupant_info = self.Null
+        self.cap_of_floor = False #responsável por dit of ER on floor
+        self.list_to_rule = self.Null # se capitão recebe info dos ER q estão no andar
+        self.in_building = go_inside #ver se entrou no edifício
 
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
@@ -235,4 +238,24 @@ class ERAgent(Agent):
 
             #else deu drop na saída poss de occ não altera
             self.helping = False
+
+
+
+    #to create a cap, to remove a cap, to comunicate t cap, to order non cap
+
+    class KarenOfFloor(CyclicBehaviour):
+
+        def __init__(self, cap=False):
+            super().__init__(cap)
+            if not self.cap:
+                raise ValueError("CyclicBehaviour can only be instantiated if cap is True.")
+            
+        #vai continuamente saber quem já foi salvo e onde está toda a gente
+            
+        
+            
+        
+
+        
+
 
