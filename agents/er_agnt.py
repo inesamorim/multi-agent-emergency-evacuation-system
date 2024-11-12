@@ -12,7 +12,7 @@ import numpy as np
 
 
 class ERAgent(Agent):
-    def __init__(self, jid, password, environment:Environment, type, hellping=False):
+    def __init__(self, jid, password, environment:Environment, type, hellping: False):
         super().__init__(jid, password)
         self.environment = environment
         self.type = type
@@ -110,6 +110,9 @@ class ERAgent(Agent):
 
 
         async def receive_health_state(self, to_help_list):
+            ''' 
+            se occ tiver no pick da health, não pede ajuda, só foge
+            '''
             msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
 
             if msg:
@@ -260,3 +263,68 @@ class ERAgent(Agent):
 
             #else deu drop na saída poss de occ não altera
             self.helping = False
+
+
+
+    #to create a cap, to remove a cap, to comunicate t cap, to order non cap
+
+    class KarenOfFloor(CyclicBehaviour):
+        '''
+        numa primeira fase cada ER é mandado para uma poss(guardar o ocal de salvamento?)
+        o cap guarda a équipa de salvamento(todos os ER alocados para o andar)
+
+        chama pelos occ
+        recebe list de occ
+        divide équipa presente para salvar occ
+        vê se necessita de ajuda ou se tem a mais
+        convoca para outros ER ou BMS se necessita de mais pessoas ou se pode dar
+        unc de trocar de andar um ER (recive, send)
+        tem func
+        '''
+            
+        async def run(self):
+
+            # Check if self.cap from the outer ER class is True
+            if self.cap:
+                # Perform actions only if cap is True
+                print("KarenOfFloor is active and performing tasks.")
+
+                #continuamente 2 em 2 seg obter pessoas e ER da équipa 
+                #só saem da équipa com transfer  
+                #CheckForHealthState, ReceiveHealthState
+
+                #team = 
+                #to_save = 
+                
+            else:
+                print("KarenOfFloor is inactive due to cap being False.")
+
+        
+        async def get_team(self):
+            #update de 2 em 2 seg
+            #to see if it has changed(died or transfered)
+            #team guarda ids
+            pass
+
+        async def trafg_ER_to(slef, er_id):
+            #altera team
+            #altera vall para onde er_id foi alocado
+            #se get_team for constantemente atualizada não necessita de trafg_ER_from()
+            pass
+
+        async def its_hero_time(self, team, to_save):
+            ''' 
+            usando a lista de pessoas  e os ER do andar 
+            (chamada sempre q é notado alterações de nº de ER ou DEC causa mt estrago)
+
+            to_save = [[id, healf, x, y, z], [id, healf, x, y, z], [id, healf, x, y, z]]
+            ordered by healf draws by dist
+            '''
+
+            
+            pass
+
+            
+        #vai continuamente saber quem já foi salvo e onde está toda a gente
+            
+        
