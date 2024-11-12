@@ -73,9 +73,16 @@ class Environment:
             self.building[z][x][y] = 4
 
         #OBSTACLES INFO
-        self.obstacles_loc = []
-        for x, y, z in self.obstacles_loc:
-            self.building[z][x][y] = 5
+        """
+        fire - only firefighters can pass through
+        smoke - everyone can pass trhough, but loses health
+        obstacle (algo que caiu do teto, etc) - no one passes through
+        """
+        self.obstacles_type = ['fire', 'smoke', 'obstacle']
+        self.obstacles = {} # loc: type
+        #self.obstacles_loc = []
+        #for x, y, z in self.obstacles_loc:
+            #self.building[z][x][y] = 5
 
         #ER AGENTS INFO - 7
         self.er_loc = {}
@@ -92,6 +99,7 @@ class Environment:
 
         #BMS INFO
         self.bms_agent = "building@localhost"
+
 
         
     def get_num_of_floors(self):
@@ -166,6 +174,15 @@ class Environment:
                 for y in range(self.grid_size):
                     if self.building[z][x][y] == 0:
                         res.append((x,y,z))
+        return res
+    
+    def get_all_positions(self):
+        res = []
+        for z in range(self.num_floors):
+            #print(self.building[z])
+            for x in range(self.grid_size):
+                for y in range(self.grid_size):
+                    res.append((x,y,z))
         return res
     
     #=============================================OCCUPANTS==========================================#
