@@ -1,9 +1,13 @@
 import asyncio
+from datetime import datetime
+import random
 
 class Environment:
-    def __init__(self, grid_size=10, num_floors=1):
+    def __init__(self, grid_size=10, num_floors=1, num_occupants = 5, num_er = 4):
         self.grid_size = grid_size
         self.num_floors = num_floors
+        self.num_occupants = num_occupants
+        self.num_er = num_er
 
         self.building = [[[0 for _ in range(grid_size)] for _ in range(grid_size)] for _ in range(num_floors)]
         self.building.append((-1,-1,-1)); # pos outside of building
@@ -11,6 +15,11 @@ class Environment:
         self.current_floor = 0
 
         self.queue = asyncio.Queue() #fila para gerenciamento da ordem das operações
+
+        self.start_time = datetime.now()
+
+        self.occupants_saved = 0
+        self.occupants_dead = 0
 
         #DOORS INFO
         self.doors_locations = [(0,4,0),(9,7,0)]
@@ -27,18 +36,38 @@ class Environment:
                             "Window 2": 'closed'}
         
         #STAIRS INFO
-        self.stairs_locations = [(5,5,0)]
+        self.stairs_locations = [(5,5,0), (5,5,1)]
         for x, y, z in self.stairs_locations:
            self.building[z][x][y] = 3
 
+        #EXIT INFO
+        self.exit_loc = [(0,0,0)]
+        for x, y, z in self.exit_loc:
+            self.building[z][x][y] = 6
+        self.exits_state = {(0,0,0): 'open'}
+        
+        #ELEVATOR INFO
+        self.elevator = 'on'
+
 
         #OCCUPANTS INFO
-        self.occupants_loc = {"occupant0@localhost": (1,2,0), 
-                              "occupant1@localhost": (2,4,0),
-                              "occupant2@localhost": (5,7,0), 
-                              "occupant3@localhost": (3,8,0), 
-                              "occupant4@localhost": (8,7,0)}
-        """
+        self.occupants_loc = {}
+        available_positions = self.get_available_positions()
+        for i in range(num_occupants):
+            id = f"occupant{i}@localhost"
+            x = random.randint(0,grid_size-1)
+            y = random.randint(0,grid_size-1)
+            z = random.randint(0,num_floors-1)
+            pos = (x,y,z)
+            while(pos not in available_positions):
+                x = random.randint(0,grid_size-1)
+                y = random.randint(0,grid_size-1)
+                z = random.randint(0,num_floors-1)
+                pos = (x,y,z)
+            self.occupants_loc[str(id)] = pos
+            available_positions.remove((x,y,z))
+
+        """       
         -1 -> morto
         0 -> n se consegue mexer
         1 -> mexe-se 1 quadrado, precisa de cura
@@ -51,22 +80,11 @@ class Environment:
                               "occupant4@localhost": 1} # 0 means not able-bodied -> cant move
         for x,y,z in self.occupants_loc.values():
             self.building[z][x][y] = 4
-        
-        #print(self.building)
 
         #OBSTACLES INFO
         self.obstacles_loc = []
         for x, y, z in self.obstacles_loc:
             self.building[z][x][y] = 5
-
-        #EXIT INFO
-        self.exit_loc = [(0,0,0)]
-        for x, y, z in self.exit_loc:
-            self.building[z][x][y] = 6
-        self.exits_state = {(0,0,0): 'open'}
-        
-        #ELEVATOR INFO
-        self.elevator = 'on'
 
         #ER AGENTS INFO
         self.er_loc = {"eragent0@localhost": (1,0,0),
@@ -83,9 +101,11 @@ class Environment:
                        "eragent3@localhost": False}
         for x,y,z in self.er_loc.values():
             self.building[z][x][y] = 7
-        
-        #print(self.building)
 
+        #BMS INFO
+        self.bms_agent = "building@localhost"
+
+        
     def get_num_of_floors(self):
         return len(self.building)
     
@@ -150,6 +170,18 @@ class Environment:
                 locations.append((x,y))
         return locations
     
+    def get_available_positions(self):
+        res = []
+        for z in range(self.num_floors):
+            #print(self.building[z])
+            for x in range(self.grid_size):
+                for y in range(self.grid_size):
+                    if self.building[z][x][y] == 0:
+                        res.append((x,y,z))
+        return res
+    
+    #=============================================OCCUPANTS==========================================#
+
     def get_all_occupants_loc(self):
         return self.occupants_loc
     
@@ -168,12 +200,11 @@ class Environment:
         self.building[z][x][y] = 0
         del self.occupants_loc[str(occupant_id)]
         del self.occupants_health[str(occupant_id)]
-    
+        self.occupants_saved += 1
+
     def update_occupant_position(self, agent_id, new_x, new_y, new_z):
-        # Verifique se o agente está no dicionário antes de tentar acessar
         if str(agent_id) not in self.occupants_loc:
             print(f"Error: Agent ID {agent_id} not found in occupants_loc.")
-            return 0  # Retorne um código de erro ou tome uma ação apropriada
 
         x, y, z = self.occupants_loc[str(agent_id)]
         self.occupants_loc[str(agent_id)] = (new_x, new_y, new_z)
@@ -185,7 +216,9 @@ class Environment:
         x, y, z = self.occupants_loc[str(agent_id)]
         self.building[z][x][y] = 0
         self.occupants_loc.pop(str(agent_id))
+        self.occupants_saved += 1
         return 1
+    
     
     #====================================================EMERGENCY RESPONDERS=======================================#
 
@@ -214,6 +247,9 @@ class Environment:
         
     def get_all_er_roles(self):
         return self.er_role
+    
+    def update_er_role(self, er_id, is_captain):
+        self.er_type[str(er_id)] = is_captain
     
     def update_er_position(self, agent_id, new_x, new_y, new_z):
         # Verifique se o agente está no dicionário antes de tentar acessar
