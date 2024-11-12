@@ -287,8 +287,11 @@ class ERAgent(Agent):
 
             to_save = [[id, healf, x, y, z], [id, healf, x, y, z], [id, healf, x, y, z]]
             ordered by healf draws by dist
+
+            a pessoa(occ) pode morrer entretanto, se mt perto do -1 ignora ou, quando for ver ignorar pk está morto
             '''
 
+            
             
             pass
 
