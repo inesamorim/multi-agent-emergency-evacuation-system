@@ -22,7 +22,7 @@ class ERAgent(Agent):
         self.floor = self.environment.send_plan_to_bms()  #ou recebem o andar onde estão ou recebem a grid toda
         self.busy = False
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
-        self.occupant_info = self.Null
+        self.occupant_info = None
 
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
@@ -34,21 +34,53 @@ class ERAgent(Agent):
             msg = await self.receive(timeout=10)
             if msg:
                 print(f"ER Agent {self.agent.type} {self.agent.jid} received message from BMS and is coming to the rescue...")
-                await asyncio.sleep(30)
+                await asyncio.sleep(10)
+                print("#####################################################")
                 print(f"ER Agent {self.agent.jid} has arrived to the scene")
-                msg = await self.receive(timeout=10)
-                #msg = "Please go to floor:z"
-                if msg:
-                    msg_received = msg.body
-                    floor = int(msg_received.split(":")[-1].strip())
-                    x, y, z = self.agent.environment.get_stair_loc(floor)[0]
-                    self.agent.environment.update_er_position(self.agent.jid, x,y,z)
+            
+            await asyncio.sleep(1)
+            #print("ER Agents are now distributing themselves through the floors...")
+            if str(self.agent.jid) == "eragent0@localhost":
+                agents_per_floor = self.distribute_by_floor()
+                self.distribution(agents_per_floor)
 
-                else:
-                    print(f"ER Agent {self.agent.jid} did not receive any information")
+        def distribution(self, agents_per_floor):
+            z = 0
+            for i in range(0,self.agent.environment.num_er,agents_per_floor):
+                #print(f"i: {i}")
+                for j in range(i, i+agents_per_floor):
+                    #print(f"j: {j}")
+                    er_id = f"eragent{j}@localhost"
+                    if i == j:
+                        self.agent.environment.update_er_role(er_id, True)
+                        print(f"ER agent {er_id} is assigned captain of floor {z}")
+                    floor = z
+                    pos = self.possible_pos(floor)
+                    print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                    self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                z += 1
 
-            else:
-                print(f"ER Agent {self.agent.type} {self.agent.jid} did not recieve any messages")
+        def distribute_by_floor(self):
+            #TODO: se as escadas no andar 'x' estão impedidas por um obstáculo, então os er agents podem apenas ser distribuidos pelos andares anteriores?
+            # assumindo que bombeiros passam fogo...
+            num_floors = self.agent.environment.num_floors
+            num_er_agents = self.agent.environment.num_er
+            #print(num_floors, num_er_agents)
+            #se a divisão inteira de num_agents pelo num_floors tiver resto, os agents a mais ficam à espera de info?
+            agents_per_floor = num_er_agents // num_floors
+            #print(agents_per_floor)
+            return agents_per_floor
+        
+        def possible_pos(self, floor):
+            grid = self.agent.environment.get_grid(floor)
+            x, y = self.agent.environment.get_stairs_loc(floor)[0]
+            x1 = [x-1, x+1]
+            y1 = [y-1, y+1]
+            for i in x1:
+                for j in y1:
+                    if grid[i][j] == 0:
+                        return i,j
+            return 0
 
 
 

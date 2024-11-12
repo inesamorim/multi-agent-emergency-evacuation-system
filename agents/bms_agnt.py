@@ -13,6 +13,7 @@ import numpy as np
 import copy
 import ast
 from spade import run
+from datetime import datetime
 
 class BMSAgent(Agent):
     def __init__(self, jid, password, environment:Environment):
@@ -57,50 +58,30 @@ class BMSAgent(Agent):
         async def run(self):
             self.current_plan = self.receive_building_plan()
             print(f"BMS is receiving updated building plan...")
-            for floor in range(len(self.current_plan)):
-                print(f"Plan of floor {floor}:\n")
-                print(self.current_plan[floor])
-                print("\n")
+            #for floor in range(len(self.current_plan)):
+                #print(f"Plan of floor {floor}:\n")
+                #print(self.current_plan[floor])
+                #print("\n")
             await asyncio.sleep(3)
 
         def receive_building_plan(self):
             return self.agent.environment.send_plan_to_bms()
         
         
-    class SendERToFloor(OneShotBehaviour):
-        async def run(self):
-            agents_per_floor = self.distribute_by_floor()
-            self.send_info_to_er(agents_per_floor)
-
-        async def send_info_to_er(self, agents_per_floor):
-            for i in range(0,len(self.agent.environment.er_loc),agents_per_floor):
-                for j in range(i, agents_per_floor):
-                    #flag
-                    floor = i
-                    msg = Message(to=f"eragent{j}@localhost")
-                    msg.set_metadata("performative", "inform")
-                    msg.body = f"[BMS] Please go to floor:{floor}"
-
-                    await self.send(msg)
-
-        def distribute_by_floor(self):
-            #TODO: se as escadas no andar 'x' estão impedidas por um obstáculo, então os er agents podem apenas ser distribuidos pelos andares anteriores?
-            # assumindo que bombeiros passam fogo...
-            num_floors = self.agent.environment.get_num_of_floors()
-            num_er_agents = len(self.agent.envrionment.get_er_loc())
-            #se a divisão inteira de num_agents pelo num_floors tiver resto, os agents a mais ficam à espera de info?
-            agents_per_floor = num_er_agents // num_floors
-            return agents_per_floor
 
     class HelpWithOccupantsRoute(CyclicBehaviour):
         async def run(self):
             preferences = {}
             num_occupants = len(self.agent.environment.get_all_occupants_loc())
 
-            print("Waiting for occupants preferences")
-
             if(num_occupants == 0):
                 print("All occupants left safely or are dead")
+                end_time = datetime.now()
+                print("######################STATS######################")
+                print(f"Evacuation took {end_time - self.agent.environment.start_time}")
+                print(f"Occupants Saved: {self.agent.environment.occupants_saved}")
+                print(f"Dead Occupants: {self.agent.environment.occupants_dead}")
+                #await stop_agents()
 
             while len(preferences) < num_occupants:
                 msg = await self.receive(timeout=5)
@@ -113,7 +94,6 @@ class BMSAgent(Agent):
             
                     # Armazena a lista de preferências no dicionário
                     preferences[occupant_id] = hierarchy
-                    print(f"Preferences of {occupant_id} received: {hierarchy}")
                 else:
                     print("Didn't receive any messages")
                     break
@@ -122,7 +102,6 @@ class BMSAgent(Agent):
             
             # Faz uma cópia profunda da grid
             grid_copy = copy.deepcopy(self.agent.environment.get_building())
-            print("Deep copy created.")
 
             # Realiza lógica para determinar o próximo movimento com base nas preferências
             await self.process_moves(preferences, grid_copy)
@@ -130,7 +109,7 @@ class BMSAgent(Agent):
             await asyncio.sleep(2)
 
         async def process_moves(self, preferences, grid_copy):
-            print("Processando as preferências dos ocupantes...")
+
             final_positions = {}
             occupied_positions = set() #keep up with occupied positions
 
@@ -141,7 +120,6 @@ class BMSAgent(Agent):
                     #check if its available
                     if preferred_move not in occupied_positions:
                         final_positions[occupant_id] = preferred_move
-                        print(f"New position for {occupant_id}: {preferred_move}")
                         occupied_positions.add(preferred_move)
                         break
                     else:
@@ -155,8 +133,8 @@ class BMSAgent(Agent):
             msg = Message(to=occupant_id)
             msg.set_metadata("performative", "inform")
             if position:
-                msg.body = f"Go to new position: {position}"
-                print(f"Sending new position {position} to occupant {occupant_id}.")
+                msg.body = f"new position: {position}"
+
             
             await self.send(msg)
             
