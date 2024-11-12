@@ -3,10 +3,16 @@ from agents import occupant_agnt, er_agnt, bms_agnt
 import spade
 import asyncio
 from datetime import datetime
+import threading
+from user_interface import start_interface
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(num_floors=2)
+    environment = Environment(num_floors=3, num_occupants=10, num_er=5)
+
+    #start user interface
+    #interface_thread = threading.Thread(target=start_interface, args=(environment,))
+    #interface_thread.start()
     
     async def enqueue_agent(agent):
         await agent.start(auto_register=True)
@@ -39,54 +45,68 @@ async def main():
      # Start the Building Agent
     building_agent = bms_agnt.BMSAgent("building@localhost", "password", environment)
     await enqueue_agent(building_agent)
-
+    print("\n")
+    
+    print("#####################################################################")
     print(f"All agents created. Starting simulation at {environment.start_time}")
+    print("#####################################################################")
 
-
-    # Processa a fila de agentes e behaviours em ordem
-    while not environment.queue.empty():
-        item = await environment.queue.get()
-        if isinstance(item, tuple):  # Se for um behaviour
-            agent, behaviour = item
-            agent.add_behaviour(behaviour)
-        else:  # Se for um agente
-            agent = item
-        environment.queue.task_done()
+    print("\n")
 
     # Call ER agents to the scene
     for er_agent in er_agents:
         er_agent.add_behaviour(er_agent.GoToBuilding())
-        await asyncio.sleep(0.5)
+        #await asyncio.sleep(0.5)
     building_agent.add_behaviour(building_agent.CallER())
-    await asyncio.sleep(0.5)
-    
+    #await asyncio.sleep(0.5)
 
     # Send warnings to occupants
     for occupant_agent in occupants:
         occupant_agent.add_behaviour(occupant_agent.ReceiveWarning())
-        await asyncio.sleep(0.5)
+        #await asyncio.sleep(0.5)
     building_agent.add_behaviour(building_agent.SendWarnings())
-    await asyncio.sleep(0.5)
-
-    
+    #await asyncio.sleep(0.5)
 
     # Receive building plan
     building_agent.add_behaviour(building_agent.ReceiveBuildingPlan())
 
     behaviours = []
-
-    behaviours.append(building_agent.add_behaviour(building_agent.ReceiveBuildingPlan()))
     # Evacuate occupants
     for occupant_agent in occupants:
         behav = occupant_agent.add_behaviour(occupant_agent.EvacuateBehaviour())
         behaviours.append(behav)
-        await asyncio.sleep(0.5)
+        #await asyncio.sleep(0.5)
+
+    behaviours.append(building_agent.add_behaviour(building_agent.ReceiveBuildingPlan()))
+    behaviours.append(building_agent.add_behaviour(building_agent.HelpWithOccupantsRoute()))
 
 
-    #Check Health
+    #TODO: Check Health
+    for er_agent in er_agents:
+        while(er_agent.busy):
+            await asyncio.sleep(5)
+        if er_agent.environment.get_er_role(er_agent.jid):
+            #print("foo =====================================================")
+            behav_2 = er_agent.add_behaviour(er_agent.ReceiveHealthState())
+            behaviours.append(behav_2)
+            
+    for occupant_agent in occupants:
+        behav = occupant_agent.add_behaviour(occupant_agent.HOFAH())
+        behaviours.append(behav)
+    for er_agent in er_agents:
+        while(er_agent.busy):
+            await asyncio.sleep(5)
+            print("Waiting....")
+        print("Not Waiting...")
+        print(er_agent.environment.get_er_role(er_agent.jid))
+        if er_agent.environment.get_er_role(er_agent.jid):
+            #print("foo =====================================================")
+            behav = er_agent.add_behaviour(er_agent.CheckForHealthState())
+            behaviours.append(behav)
+            
 
     
-    behaviours.append(building_agent.add_behaviour(building_agent.HelpWithOccupantsRoute()))
+    
     
     #await asyncio.gather(*behaviours)
 

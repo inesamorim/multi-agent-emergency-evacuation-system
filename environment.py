@@ -36,7 +36,9 @@ class Environment:
                             "Window 2": 'closed'}
         
         #STAIRS INFO
-        self.stairs_locations = [(5,5,0), (5,5,1)]
+        self.stairs_locations = []
+        for i in range(self.num_floors):
+            self.stairs_locations.append((5,5,i))
         for x, y, z in self.stairs_locations:
            self.building[z][x][y] = 3
 
@@ -52,20 +54,14 @@ class Environment:
 
         #OCCUPANTS INFO
         self.occupants_loc = {}
+        self.occupants_health = {}
         available_positions = self.get_available_positions()
         for i in range(num_occupants):
             id = f"occupant{i}@localhost"
-            x = random.randint(0,grid_size-1)
-            y = random.randint(0,grid_size-1)
-            z = random.randint(0,num_floors-1)
-            pos = (x,y,z)
-            while(pos not in available_positions):
-                x = random.randint(0,grid_size-1)
-                y = random.randint(0,grid_size-1)
-                z = random.randint(0,num_floors-1)
-                pos = (x,y,z)
+            pos = random.choice(available_positions)
             self.occupants_loc[str(id)] = pos
-            available_positions.remove((x,y,z))
+            self.occupants_health[str(id)] = random.randint(1,2)
+            available_positions.remove(pos)
 
         """       
         -1 -> morto
@@ -73,11 +69,6 @@ class Environment:
         1 -> mexe-se 1 quadrado, precisa de cura
         2 -> mexe-se 2 quadrados, is perfectly good
         """
-        self.occupants_health = {"occupant0@localhost": 1, 
-                              "occupant1@localhost": 0,
-                              "occupant2@localhost": 1, 
-                              "occupant3@localhost": 2, 
-                              "occupant4@localhost": 1} # 0 means not able-bodied -> cant move
         for x,y,z in self.occupants_loc.values():
             self.building[z][x][y] = 4
 
@@ -86,21 +77,18 @@ class Environment:
         for x, y, z in self.obstacles_loc:
             self.building[z][x][y] = 5
 
-        #ER AGENTS INFO
-        self.er_loc = {"eragent0@localhost": (1,0,0),
-                       "eragent1@localhost": (1,0,0),
-                       "eragent2@localhost": (1,0,0),
-                       "eragent3@localhost": (1,0,0)}
-        self.er_type = {"eragent0@localhost": 'firefighter',
-                       "eragent1@localhost": 'firefighter',
-                       "eragent2@localhost": 'paramedic',
-                       "eragent3@localhost": 'paramedic'}
-        self.er_role = {"eragent0@localhost": False,
-                       "eragent1@localhost": False,
-                       "eragent2@localhost": False,
-                       "eragent3@localhost": False}
-        for x,y,z in self.er_loc.values():
-            self.building[z][x][y] = 7
+        #ER AGENTS INFO - 7
+        self.er_loc = {}
+        self.er_role = {}
+        self.er_type = {}
+        for i in range(self.num_er):
+            id = f"eragent{i}@localhost"
+            self.er_loc[str(id)] = (-1,-1,-1)
+            self.er_role[str(id)] = False
+            if i%2 == 0:
+                self.er_type[str(id)] = 'firefighter'
+            else:
+                self.er_type[str(id)] = 'paramedic'
 
         #BMS INFO
         self.bms_agent = "building@localhost"
@@ -249,7 +237,7 @@ class Environment:
         return self.er_role
     
     def update_er_role(self, er_id, is_captain):
-        self.er_type[str(er_id)] = is_captain
+        self.er_role[str(er_id)] = is_captain
     
     def update_er_position(self, agent_id, new_x, new_y, new_z):
         # Verifique se o agente está no dicionário antes de tentar acessar
@@ -259,7 +247,8 @@ class Environment:
         
         x,y,z = self.er_loc[str(agent_id)] 
         self.er_loc[str(agent_id)] = (new_x, new_y, new_z)
-        self.building[z][x][y] = 0
+        if (x,y,z) != (-1,-1,-1):
+            self.building[z][x][y] = 0
         self.building[new_z][new_x][new_y] = 7
         return 1
     

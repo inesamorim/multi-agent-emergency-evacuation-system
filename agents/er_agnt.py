@@ -12,15 +12,15 @@ import numpy as np
 
 
 class ERAgent(Agent):
-    def __init__(self, jid, password, environment:Environment, type, hellping: False):
+    def __init__(self, jid, password, environment:Environment, type):
         super().__init__(jid, password)
         self.environment = environment
         self.type = type
         ###### BOB WAS HERE ######
-        self.helping = hellping #se está a transportar alguém
+        self.helping = False #se está a transportar alguém
         self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]}
         self.floor = self.environment.send_plan_to_bms()  #ou recebem o andar onde estão ou recebem a grid toda
-        self.busy = False
+        self.busy = True
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
         self.occupant_info = None
 
@@ -37,22 +37,34 @@ class ERAgent(Agent):
                 await asyncio.sleep(10)
                 print("#####################################################")
                 print(f"ER Agent {self.agent.jid} has arrived to the scene")
+                self.agent.busy = False
             
             await asyncio.sleep(1)
             #print("ER Agents are now distributing themselves through the floors...")
             if str(self.agent.jid) == "eragent0@localhost":
-                agents_per_floor = self.distribute_by_floor()
-                self.distribution(agents_per_floor)
+                agents_per_floor, resto = self.distribute_by_floor()
+                self.distribution(agents_per_floor, resto)
 
-        def distribution(self, agents_per_floor):
+        def distribution(self, agents_per_floor, resto):
             z = 0
             for i in range(0,self.agent.environment.num_er,agents_per_floor):
+                z1 = 0
+                if z >= self.agent.environment.num_floors:
+                    for j in range(i, i+resto):
+                        er_id = f"eragent{j}@localhost"
+                        floor = z1
+                        pos = self.possible_pos(floor)
+                        print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                        self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                    z1 += 1
+                    break
                 #print(f"i: {i}")
                 for j in range(i, i+agents_per_floor):
                     #print(f"j: {j}")
                     er_id = f"eragent{j}@localhost"
                     if i == j:
                         self.agent.environment.update_er_role(er_id, True)
+                        #print(self.agent.environment.er_role[str(er_id)])
                         print(f"ER agent {er_id} is assigned captain of floor {z}")
                     floor = z
                     pos = self.possible_pos(floor)
@@ -68,8 +80,9 @@ class ERAgent(Agent):
             #print(num_floors, num_er_agents)
             #se a divisão inteira de num_agents pelo num_floors tiver resto, os agents a mais ficam à espera de info?
             agents_per_floor = num_er_agents // num_floors
+            resto = num_er_agents % num_floors
             #print(agents_per_floor)
-            return agents_per_floor
+            return agents_per_floor, resto
         
         def possible_pos(self, floor):
             grid = self.agent.environment.get_grid(floor)
@@ -86,19 +99,22 @@ class ERAgent(Agent):
 
     class CheckForHealthState(CyclicBehaviour):
         async def run(self):
+            while(not self.agent.busy):
+                await asyncio.sleep(1)
             await self.ask_health_state()
+            await asyncio.sleep(10)
 
         async def ask_health_state(self):
-            num_occupants = len(self.agent.environment.get_all_occupants_loc())
+            num_occupants = self.agent.environment.num_occupants
             for i in range(num_occupants):
-                msg = Message(to=f"occupant{i}@localhost")
-                msg.set_metadata("performative", "informative")
-                msg.body = "[ER] Please give me information on your health state"
-                asyncio.create_task(self.sleep(10))
+                id = f"occupant{i}@localhost"
+                if str(id) in self.agent.environment.occupants_loc.keys():
+                    print(f"ER Agent {self.agent.jid} ks sending message to {id}")
+                    msg = Message(to=f"occupant{i}@localhost")
+                    msg.set_metadata("performative", "informative")
+                    msg.body = "[ER] Please give me information on your health state"
 
-                await self.send(msg)
-        async def sleep(self, time):
-            await asyncio.sleep(time)
+                    await self.send(msg)
 
 
     class ReceiveHealthState(CyclicBehaviour):
@@ -137,11 +153,11 @@ class ERAgent(Agent):
                     # Create the array with agent data
                     occ = [id_part, health_state, x, y, z]
 
-                    print("Agent data array:", occ)
+                    print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
                     to_help_list.append(occ)
 
                     if health_state==1: #agent é curável
-                        cure_behaviour = self.Cure(occ)
+                        cure_behaviour = self.Cure(occ, to_help_list)
                         self.agent.add_behaviour(cure_behaviour)
 
                 except IndexError as e:
@@ -150,7 +166,7 @@ class ERAgent(Agent):
                     print("Failed to convert data to integers. Check the data format:", e)
 
         class Cure(OneShotBehaviour):
-            def __init__(self, agent_data):
+            def __init__(self, agent_data, to_help_list):
                 super().__init__()
                 self.agent_data=agent_data
                 self.to_help_list=to_help_list

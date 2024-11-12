@@ -56,17 +56,20 @@ class OccupantAgent(Agent):
                 print(f"Occupant {self.agent.jid} did not receive any messages or is dead :(")
             
         async def send_info_to_er(self):
-            x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
-            er_agents_locs = self.agent.environment.get_all_er_locs()
-            for i in range(len(er_agents_locs)):
-                loc = er_agents_locs[i]
-                if loc[2] == z:
-                    #o primeiro er agent nesse floor recebe msg
-                    msg = Message(to=f"eragent{i}@localhost")
-                    msg.set_metadata("performative", "informative")
-                    msg.body = f"[Occupant] I am: {self.agent.id}; My position is: {x,y,z}; My health state is: {self.agent.elf}"
+            if str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+                er_agents_locs = self.agent.environment.get_all_er_locs()
+                i = 0
+                for id in er_agents_locs.keys():
+                    loc = er_agents_locs[str(id)]
+                    if loc[2] == z and self.agent.environment.er_role[str(id)]:
+                        #o primeiro er agent nesse floor recebe msg
+                        msg = Message(to=f"eragent{i}@localhost")
+                        msg.set_metadata("performative", "informative")
+                        msg.body = f"[Occupant] I am: {self.agent.jid}; My position is: {x,y,z}; My health state is: {self.agent.elf}"
 
-                    await self.send(msg)
+                        await self.send(msg)
+                    i += 1
 
     class LifeBar(CyclicBehaviour):
         '''if quadrado em q está == fumo
