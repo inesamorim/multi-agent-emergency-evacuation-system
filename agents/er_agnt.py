@@ -166,6 +166,7 @@ class ERAgent(Agent):
                     print("Failed to convert data to integers. Check the data format:", e)
 
         class Cure(OneShotBehaviour):
+            #TODO: when can we cure? Don't you gotta be next to the person?
             def __init__(self, agent_data, to_help_list):
                 super().__init__()
                 self.agent_data=agent_data
@@ -192,8 +193,8 @@ class ERAgent(Agent):
             agent_id, health, x, y, z = self.agent_data
             if health == 0 and not self.exits_available and not self.stairs_available:
                 print(f"Agent {agent_id} was saved through the window")
-
-                self.kill()
+                self.agent.environment.occupants_loc.pop(str(self.agent.jid))
+                self.agent.stop()
             else:
                 print(f"Agent {agent_id} is waiting for an available exit or stairs")
                 await self.agent.async_sleep(2)
