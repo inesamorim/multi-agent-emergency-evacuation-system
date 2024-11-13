@@ -24,6 +24,28 @@ class ERAgent(Agent):
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
         self.occupant_info = None
 
+    async def add_patient(self, patient_inf):
+        ''' to add to list of attendence'''
+        #patient_inf -> [id, type, x, y, z]
+        if not(patient_inf[0] in self.occupants):
+            self.occupants[patient_inf[0]] = patient_inf[1:]
+
+    def modify_other_agent_occ(self, other_agent_id, patient_inf):
+        """
+        Modify another agent's self.occupants if the agent exists.
+        Adds the occ info to the list for the specified `occ_id`.
+        """
+        # Retrieve the other agent using the registry
+        other_agent = Agent.agents_registry.get(other_agent_id)
+
+        # Check if the other agent exists
+        if other_agent:
+            if not(patient_inf[0] in other_agent.occ):
+                other_agent.occ[patient_inf[0]] = [patient_inf[1:]]  # Create a new entry if occ_id is new
+                print(f" {other_agent_id} will try to treat occ: {other_agent.occ}")
+        else:
+            print(f"Agent with ID {other_agent_id} not found.")
+
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
         await asyncio.sleep(0.5)
@@ -293,8 +315,17 @@ class ERAgent(Agent):
                 #só saem da équipa com transfer  
                 #CheckForHealthState, ReceiveHealthState
 
-                #team = 
-                #to_save = 
+                #team = {id: type}
+                #to_save = (sempre q ff estejam a tratar do paciente/ele morra isto é alterado)
+                ''' 
+                can_give guarda a quantidade/id  e type de ER q podem ser descartados 
+                se houver algum outro cap a pedir por + ER é visto por grau de dis sendo quem está em andares 
+                de cima usado como forma de desempatar quando em msm dist
+
+                criar função para aceitar troca(dizer a ER id que ele pertence a andar z_new)
+                '''
+                can_give=[]
+
                 
             else:
                 print("KarenOfFloor is inactive due to cap being False.")
@@ -307,25 +338,66 @@ class ERAgent(Agent):
             pass
 
         async def trafg_ER_to(slef, er_id):
-            #altera team
             #altera vall para onde er_id foi alocado
             #se get_team for constantemente atualizada não necessita de trafg_ER_from()
             pass
 
-        async def its_hero_time(self, team, to_save):
+        async def get_n_of(self, team, len_to_save, can_give):
+            ''' 
+            ver quantos menmbros da eq são paramed e quantos são ff 
+
+            se valores diff dos esperados gardar as alterações
+        
+            neste caso, pedir por ajuda
+            -> paramédicos     type:1     n/ner >=7.5      
+            -> ff              type:2     n/ner >=5.5
+
+            neste caso criar lista de possíveis transferÊncias 
+            -> paramédicos     type:1     n/ner <=3.5      
+            -> ff              type:2     n/ner <=1.5
+
+            '''
+            n_paramed = []
+            n_ff = []
+            for id in team:
+                if team[id] == 2: n_paramed+=1
+                if team[id] == 1: n_ff+=1
+
+            #criar if para ver se quantidade de er é dentro do necessário
+            #paramed
+            
+            return n_paramed, n_ff
+
+        async def its_hero_time(self, team, to_save, can_give):
             ''' 
             usando a lista de pessoas  e os ER do andar 
             (chamada sempre q é notado alterações de nº de ER ou DEC causa mt estrago)
 
             to_save = [[id, healf, x, y, z], [id, healf, x, y, z], [id, healf, x, y, z]]
             ordered by healf draws by dist
+            team = {id: type}
 
-            a pessoa(occ) pode morrer entretanto, se mt perto do -1 ignora ou, quando for ver ignorar pk está morto
+            a pessoa(occ) pode morrer entretanto, se mt perto do -1 ignora ou, quando for ver ignorar pk está morto            
             '''
 
-            
-            
-            pass
+            n_paramd, n_ff = self.get_n_of(team, len(to_save), can_give)
+            n_p = n_paramd
+            n_f = n_ff
+            for id in team:
+                if team[id] == 2:
+                    n_p -= 1
+                    for i in range(n_p, len(to_save), n_paramd):
+                        self.modify_other_agent_occ(id, to_save[i])
+
+
+                #se so(ainda por criar) deixar de ser membro da team trocal elif para else             
+                elif team[id] == 1:
+                    n_f -= 1
+                    for i in range(n_f, len(to_save), n_ff):
+                        self.modify_other_agent_occ(id, to_save[i])
+                    
+                
+            #self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]} 
 
             
         #vai continuamente saber quem já foi salvo e onde está toda a gente
