@@ -50,6 +50,10 @@ Behaviours:
                                     se houver mais ER do q feridos 
                                     lider avisa BMS
 
+    se durante o salvamente alguém for mandado para outro andar a lista de occ para salvar é 
+    automáticamente distribuida por todos os ER desse tipo q estão nesse andar
+    
+
     [] AbortMission(OneShot) -> se toda a gente salva ou se não der para salvar mais(determinada por BMS)
                              
     [] GetCrue -> see how else with get comerads

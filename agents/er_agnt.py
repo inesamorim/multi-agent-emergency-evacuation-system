@@ -24,6 +24,28 @@ class ERAgent(Agent):
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
         self.occupant_info = None
 
+    async def add_patient(self, patient_inf):
+        ''' to add to list of attendence'''
+        #patient_inf -> [id, type, x, y, z]
+        if not(patient_inf[0] in self.occupants):
+            self.occupants[patient_inf[0]] = patient_inf[1:]
+
+    async def modify_other_agent_occ(self, other_agent_id, patient_inf):
+        """
+        Modify another agent's self.occupants if the agent exists.
+        Adds the occ info to the list for the specified `occ_id`.
+        """
+        # Retrieve the other agent using the registry
+        other_agent = Agent.agents_registry.get(other_agent_id)
+
+        # Check if the other agent exists
+        if other_agent:
+            if not(patient_inf[0] in other_agent.occupants):
+                other_agent.occupants[patient_inf[0]] = [patient_inf[1:]]  # Create a new entry if occ_id is new
+                print(f" {other_agent_id} will try to treat occ: {other_agent.occ}")
+        else:
+            print(f"Agent with ID {other_agent_id} not found.")
+
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
         await asyncio.sleep(0.5)
@@ -38,7 +60,7 @@ class ERAgent(Agent):
                 print("#####################################################")
                 print(f"ER Agent {self.agent.jid} has arrived to the scene")
                 self.agent.busy = False
-            
+
             await asyncio.sleep(1)
             #print("ER Agents are now distributing themselves through the floors...")
             if str(self.agent.jid) == "eragent0@localhost":
@@ -83,7 +105,7 @@ class ERAgent(Agent):
             resto = num_er_agents % num_floors
             #print(agents_per_floor)
             return agents_per_floor, resto
-        
+
         def possible_pos(self, floor):
             grid = self.agent.environment.get_grid(floor)
             x, y = self.agent.environment.get_stairs_loc(floor)[0]
@@ -126,7 +148,7 @@ class ERAgent(Agent):
 
 
         async def receive_health_state(self, to_help_list):
-            ''' 
+            '''
             se occ tiver no pick da health, não pede ajuda, só foge
             '''
             msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
@@ -172,22 +194,30 @@ class ERAgent(Agent):
                 self.agent_data=agent_data
                 self.to_help_list=to_help_list
 
+
+############################ ns se vai ser alterada ##############################
+        class Cure(OneShotBehaviour):
             async def run(self):
                 agent_id, health, x, y, z = self.agent_data
-                print(f"Attempting to cure agent {agent_id} with health state {health}")
-
+                print(f"Attempting to cure agent {agent_id}")
+                #imediato?
                 self.agent_data[1]=0 #curado, health_state=0 (?)
                 print(f"Agent {agent_id} has been cured")
 
                 if self.agent_data in self.to_help_list:
                     self.to_help_list.remove(self.agent_data)
+############################ alternativa para PARAMED e FF ##############################
+    class ToSaveOrNotToSave(OneShotBehaviour):
+        # se paramed -> chegará beira da pessoa e invocar cura(dependedndo do estado demora x tempo)
+        async def stagnation(self):
+            """
+            invocar quando er type==2 chega á beira do occ indicado
+            Sets occ.elf_bar of the target agent to infinity.
 
-    class SaveThroughWindow(CyclicBehaviour):
-        def __init__(self, agent_data, exits_available, stairs_available):
-            super().__init__()
-            self.agent_data = agent_data
-            self.exits_available = exits_available   ##
-            self.stairs_available = stairs_available ##
+            Parameters:
+                occ (list): A list containing [occ_id, type, x, y, z]
+            """
+
 
         async def run(self):
             agent_id, health, x, y, z = self.agent_data
@@ -195,9 +225,83 @@ class ERAgent(Agent):
                 print(f"Agent {agent_id} was saved through the window")
                 self.agent.environment.occupants_loc.pop(str(self.agent.jid))
                 self.agent.stop()
+            if self.type == 1:
+                # Assuming that occ_id can be used to access the agent instance
+                occ_id = next(iter(self.occupants)) #o 1º id
+
+
+                if occ_id is not None:
+                    if self.occupants[occ_id][0] != -1:
+                        #ainda se pode salvar
+                        timm = [6, 4, 2] #tempo de salvar proporcional ao nível do occ
+                        await asyncio.sleep(self.occupants[occ_id][0])
+
+                        # Set elf_bar of the target agent to infinity
+                        occ_id.white_ribons()
+                        print(f"Set elf_bar of agent {occ_id} to infinity.")
+
+                        #remove form list to_save
+                else:
+                    print(f"Agent with id {occ_id} not found or dead.")
+
+                self.occupants.pop(occ_id)#remover do dic
+
+
+        # se ff -> o occ já foi visto por um médico(não sofre dano ao longo do tempo)
+        async def clear_path(self):
+            '''
+            se houver um problema de dimenções pequenas eles podem fazer com que ele desapareça
+            tem q ser no msm andar
+            '''
+            pass
+        async def get_best_exit_rout(self):
+            '''
+            1-º se os andares entre o q está e a saída + proxima estiverem maus ou bons
+            2-º é possível, no andar onde está chegar ás escadas/saida
+            4-º qual é a janela acessível mais prox
+            ask BMS to see if can easly exit building(the floors belloy are in danger)
+            if not a good idea and no exterior stairs, use window
+            '''
+            pass
+
+
+    class SaveThroughWindow(OneShotBehaviour):
+    async def run(self):
+        agent_id, health, x, y, z = self.agent_data
+
+        if not self.exits_available and not self.stairs_available:
+            print(f"Agent {agent_id} is preparing to save through the window...")
+
+            #tentar encontrar janela acessível
+            window_position = await self.find_accessible_window(x, y, z)
+            if window_position:
+                print(f"Agent {agent_id} found an accessible window at {window_position}.")
+                await self.perform_save(agent_id, window_position)
+
             else:
-                print(f"Agent {agent_id} is waiting for an available exit or stairs")
+                print(f"No accessible windows found. Waiting for an exit or stairs.")
                 await self.agent.async_sleep(2)
+        else:
+            print(f"Agent {agent_id} is waiting for an available exit or stairs.")
+            await self.agent.async_sleep(2)
+
+    async def find_accessible_window(self, x, y, z):
+        windows = #posições das janelas
+        for window in windows:
+            wx, wy = window
+            if self.is_window_accessible(wx, wy, x, y):
+                return (wx, wy, z)
+        return None
+
+    def is_window_accessible(self, wx, wy, x, y):
+        distance = ((wx - x) ** 2 + (wy - y) ** 2) ** 0.5
+        return distance <= 1  #janela acessível se distância<=1..
+
+    async def perform_save(self, agent_id, window_position):
+        print(f"Agent {agent_id} is saving through the window at {window_position}...")
+        await asyncio.sleep(3)
+        print(f"Agent {agent_id} successfully saved the occupant through the window")
+        self.kill()
 
 
     class AbductionOfOcc(OneShotBehaviour):
@@ -298,7 +402,7 @@ class ERAgent(Agent):
         unc de trocar de andar um ER (recive, send)
         tem func
         '''
-            
+
         async def run(self):
 
             # Check if self.cap from the outer ER class is True
@@ -306,17 +410,26 @@ class ERAgent(Agent):
                 # Perform actions only if cap is True
                 print("KarenOfFloor is active and performing tasks.")
 
-                #continuamente 2 em 2 seg obter pessoas e ER da équipa 
-                #só saem da équipa com transfer  
+                #continuamente 2 em 2 seg obter pessoas e ER da équipa
+                #só saem da équipa com transfer
                 #CheckForHealthState, ReceiveHealthState
 
-                #team = 
-                #to_save = 
-                
+                #team = {id: type}
+                #to_save = (sempre q ff estejam a tratar do paciente/ele morra isto é alterado)
+                '''
+                can_give guarda a quantidade/id  e type de ER q podem ser descartados
+                se houver algum outro cap a pedir por + ER é visto por grau de dis sendo quem está em andares
+                de cima usado como forma de desempatar quando em msm dist
+
+                criar função para aceitar troca(dizer a ER id que ele pertence a andar z_new)
+                '''
+                can_give=[]
+
+
             else:
                 print("KarenOfFloor is inactive due to cap being False.")
 
-        
+
         async def get_team(self):
             #update de 2 em 2 seg
             #to see if it has changed(died or transfered)
@@ -324,27 +437,81 @@ class ERAgent(Agent):
             pass
 
         async def trafg_ER_to(slef, er_id):
-            #altera team
             #altera vall para onde er_id foi alocado
             #se get_team for constantemente atualizada não necessita de trafg_ER_from()
             pass
 
-        async def its_hero_time(self, team, to_save):
-            ''' 
-            usando a lista de pessoas  e os ER do andar 
+        async def get_n_of(self, team, len_to_save, can_give):
+            '''
+            ver quantos menmbros da eq são paramed e quantos são ff
+
+            se valores diff dos esperados gardar as alterações
+
+            '''
+            n_paramed = []
+            n_ff = []
+            for id in team:
+                if team[id] == 2: n_paramed+=1
+                if team[id] == 1: n_ff+=1
+
+            '''
+                        neste caso, pedir por ajuda
+            -> paramédicos     type:1     n/ner >=7.5
+            -> ff              type:2     n/ner >=5.5
+
+            neste caso criar lista de possíveis transferÊncias
+            -> paramédicos     type:1     n/ner <=3.5
+            -> ff              type:2     n/ner <=1.5
+
+
+            '''
+            #criar if para ver se quantidade de er é dentro do necessário
+            # FALTA A PARTE DE PEDIR POR
+            #paramed
+            if len_to_save/n_paramed<=3.5:
+                for id, type_ in team.items():
+                    if type_ == 1:
+                        can_give.append([id, type_])
+                        if len_to_save / n_paramed > 3.5:
+                            break
+            #ff
+            if len_to_save/n_ff<=1.5:
+                for id, type_ in team.items():
+                    if type_ == 2:
+                        can_give.append([id, type_])
+                        if len_to_save / n_ff > 1.5:
+                            break
+
+
+            return n_paramed, n_ff
+
+        async def its_hero_time(self, team, to_save, can_give):
+            '''
+            usando a lista de pessoas  e os ER do andar
             (chamada sempre q é notado alterações de nº de ER ou DEC causa mt estrago)
 
             to_save = [[id, healf, x, y, z], [id, healf, x, y, z], [id, healf, x, y, z]]
             ordered by healf draws by dist
+            team = {id: type}
 
             a pessoa(occ) pode morrer entretanto, se mt perto do -1 ignora ou, quando for ver ignorar pk está morto
             '''
 
-            
-            
-            pass
+            n_paramd, n_ff = self.get_n_of(team, len(to_save), can_give)
+            n_p = n_paramd
+            n_f = n_ff
+            for id in team:
+                if team[id] == 2:
+                    n_p -= 1
+                    for i in range(n_p, len(to_save), n_paramd):
+                        self.modify_other_agent_occ(id, to_save[i])
 
-            
-        #vai continuamente saber quem já foi salvo e onde está toda a gente
-            
-        
+
+                #se so(ainda por criar) deixar de ser membro da team trocal elif para else
+                elif team[id] == 1:
+                    n_f -= 1
+                    for i in range(n_f, len(to_save), n_ff):
+                        self.modify_other_agent_occ(id, to_save[i])
+
+
+            #self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]}
