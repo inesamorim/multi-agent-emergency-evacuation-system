@@ -77,7 +77,7 @@ class BMSAgent(Agent):
             if(num_occupants == 0):
                 print("All occupants left safely or are dead")
                 end_time = datetime.now()
-                print("######################STATS######################")
+                print("###################### STATS ######################")
                 print(f"Evacuation took {end_time - self.agent.environment.start_time}")
                 print(f"Occupants Saved: {self.agent.environment.occupants_saved}")
                 print(f"Dead Occupants: {self.agent.environment.occupants_dead}")
@@ -95,7 +95,7 @@ class BMSAgent(Agent):
                     # Armazena a lista de preferências no dicionário
                     preferences[occupant_id] = hierarchy
                 else:
-                    print("Didn't receive any messages")
+                    print("BMS didn't receive any messages")
                     break
 
 
@@ -139,4 +139,6 @@ class BMSAgent(Agent):
             await self.send(msg)
             
         
-        
+
+
+#TODO: Check for disasters

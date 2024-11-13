@@ -1,11 +1,113 @@
-"""mport tkinter as tk
-import random
-from agents import building_agent
-import queue
-import user_interface
-from agents import occupant_agent
+import tkinter as tk
+from tkinter import ttk
+from datetime import datetime
+import asyncio
+import threading
+from environment import Environment
+from tkinter import PhotoImage
+from PIL import Image, ImageTk
 
-class EvacuationUI:
+#standby
+#images not working for some reason
+class BuildingInterface:
+    def __init__(self, env:Environment):
+        self.env = env
+        self.root = tk.Tk()
+        self.root.title("Multi-Agent Emergency Evacuation System")
+
+        #icons
+        self.open_door_img = PhotoImage(file="./icons/open_door.png")
+        self.exit_img = Image.open("./icons/exit.png").resize((2, 2), Image.Resampling.LANCZOS)
+        print(self.exit_img.size)
+        self.exit_img = ImageTk.PhotoImage(self.exit_img)
+
+        #main frame
+        self.main_frame = tk.Frame(self.root)
+        self.main_frame.grid(row=0, column=0, sticky="nsew")
+
+        #main grid config
+        self.floor_frames = []
+        for i in range(env.num_floors):
+            frame = tk.Frame(self.main_frame, borderwidth=2, relief="groove")
+            frame.grid(row= (i // 2)+2, column= (i % 2)+2, padx=5, pady=5)
+            tk.Label(frame, text=f"Floor {i}").grid(row=0, column=0, columnspan=env.grid_size)
+            self.floor_frames.append(frame)
+
+        #show floor grid
+        self.grid_labels = []
+        for z in range(env.num_floors):
+            floor_grid = []
+            for x in range(env.grid_size):
+                row = []
+                for y in range(env.grid_size):
+                    label = tk.Label(self.floor_frames[z], text=" ", width=4, height=2, borderwidth=1, relief="solid")
+                    label.grid(row=x, column=y)
+                    row.append(label)
+                floor_grid.append(row)
+            self.grid_labels.append(floor_grid)
+
+        #stats
+        self.stats_frame = tk.Frame(self.root)
+        self.stats_frame.grid(row=1, column=0, sticky="ew")
+
+        self.time_label = tk.Label(self.stats_frame, text="Time: 00:00")
+        self.time_label.grid(row=0, column=0, padx=5, sticky="w")
+
+        self.saved_label = tk.Label(self.stats_frame, text="Occupants Saved: 0")
+        self.saved_label.grid(row=0, column=1, padx=5, sticky="w")
+
+        self.dead_label = tk.Label(self.stats_frame, text="Dead Occupants: 0")
+        self.dead_label.grid(row=0, column=2, padx=5, sticky="w")
+
+        #cronometro
+        self.start_time = env.start_time
+        self.update_clock()
+    
+    def update_clock(self):
+        elapsed = datetime.now() - self.start_time
+        minutes, seconds = divmod(elapsed.seconds, 60)
+        self.time_label.config(text=f"Time: {minutes:02}:{seconds:02}")
+
+        self.saved_label.config(text=f"Occupants Saved: {self.env.occupants_saved}")
+        self.dead_label.config(text=f"Dead Occupants: {self.env.occupants_dead}")
+
+    def update_grid(self):
+        for z in range(self.env.num_floors):
+            grid = self.env.get_grid(z)
+            for x in range(len(grid)):
+                for y in range(len(grid[0])):
+                    value = grid[x][y]
+                    label = self.grid_labels[z][x][y]
+                    color = "white"
+                    if value == 1:
+                        label.config(image=self.open_door_img)  # Door
+                    elif value == 2:
+                        color = "blue"   # Window
+                    elif value == 3:
+                        color = "grey"   # Stairs
+                    elif value == 4:
+                        color = "yellow" # Occupant
+                    elif value == 5:
+                        color = "black"  # Obstacle
+                    elif value == 6:
+                        label.config(image=self.exit_img)  # Exit
+                    elif value == 7:
+                        color = "red"    # ER Agent
+                    label.config(bg=color)
+
+        self.root.after(1000, self.update_grid)
+    
+    def run(self):
+        self.update_grid()
+        self.root.mainloop()
+
+def start_interface(environment):
+    interface = BuildingInterface(environment)
+    interface.run()
+
+
+"""class EvacuationUI:
+    
     def __init__(self, root=None, grid_size=10, num_floors = 1, communication_queue = None):
         self.root = root
         self.grid_size = grid_size
@@ -264,4 +366,5 @@ class EvacuationUI:
         return list_of_demanded_positions
 
     def create_obstacle(self, x, y):
-        self.canvas.itemconfig(self.cells[x,y], fill='red')"""
+        self.canvas.itemconfig(self.cells[x,y], fill='red')
+"""
