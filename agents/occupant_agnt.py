@@ -20,7 +20,7 @@ class OccupantAgent(Agent):
         ##hellf
         self.elf = self.environment.get_occupant_state(self.jid)
 
-        self.elf_bar = MAX_HEALTH    #quando chegar a 0 -> muda de nível   
+        self.elf_bar = MAX_HEALTH    #quando chegar a 0 -> muda de nível 
     
 
     async def setup(self):
@@ -72,16 +72,27 @@ class OccupantAgent(Agent):
                     i += 1
 
     class LifeBar(CyclicBehaviour):
-        '''if quadrado em q está == fumo
+        '''
+        tudo o que tem a ver com alterações de heath do occ
+        if quadrado em q está == fumo
                 self.elf_bar -= 1'''
         async def run(self):
+            x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            #se estiver num local com fumo ativar lower_life_spam
+            if self.agent.environment.obstacles[self.agent.environment.get_occupant_loc(self.agent.jid)] == 'smoke':
+                self.lower_life_spam
+            
+        async def lower_life_spam(self):
             if self.elf_bar == 0:
                 if self.elf == 0:
                     self.elf_bar = float("inf")
                 else:
                     self.elf_bar = MAX_HEALTH
                 self.elf = self.elf - 1
-                    
+
+        async def white_ribons(self):
+            ''' quando paramed "cura" o occ ele deixa de poder morrer'''
+            self.elf_bar = float("inf")                   
 
             
     #occorre normalmente está constantemente a ser feita

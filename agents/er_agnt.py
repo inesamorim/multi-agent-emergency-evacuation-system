@@ -30,7 +30,7 @@ class ERAgent(Agent):
         if not(patient_inf[0] in self.occupants):
             self.occupants[patient_inf[0]] = patient_inf[1:]
 
-    def modify_other_agent_occ(self, other_agent_id, patient_inf):
+    async def modify_other_agent_occ(self, other_agent_id, patient_inf):
         """
         Modify another agent's self.occupants if the agent exists.
         Adds the occ info to the list for the specified `occ_id`.
@@ -40,8 +40,8 @@ class ERAgent(Agent):
 
         # Check if the other agent exists
         if other_agent:
-            if not(patient_inf[0] in other_agent.occ):
-                other_agent.occ[patient_inf[0]] = [patient_inf[1:]]  # Create a new entry if occ_id is new
+            if not(patient_inf[0] in other_agent.occupants):
+                other_agent.occupants[patient_inf[0]] = [patient_inf[1:]]  # Create a new entry if occ_id is new
                 print(f" {other_agent_id} will try to treat occ: {other_agent.occ}")
         else:
             print(f"Agent with ID {other_agent_id} not found.")
@@ -187,6 +187,9 @@ class ERAgent(Agent):
                 except ValueError as e:
                     print("Failed to convert data to integers. Check the data format:", e)
 
+
+
+############################ ns se vai ser alterada ##############################
         class Cure(OneShotBehaviour):
             def __init__(self, agent_data, to_help_list):
                 super().__init__()
@@ -202,6 +205,57 @@ class ERAgent(Agent):
 
                 if self.agent_data in self.to_help_list:
                     self.to_help_list.remove(self.agent_data)
+############################ alternativa para PARAMED e FF ##############################
+    class ToSaveOrNotToSave(OneShotBehaviour):
+        # se paramed -> chegará beira da pessoa e invocar cura(dependedndo do estado demora x tempo)
+        async def stagnation(self):
+            """
+            invocar quando er type==2 chega á beira do occ indicado 
+            Sets occ.elf_bar of the target agent to infinity.
+
+            Parameters:
+                occ (list): A list containing [occ_id, type, x, y, z]
+            """
+
+            if self.type == 1:
+                # Assuming that occ_id can be used to access the agent instance
+                occ_id = next(iter(self.occupants)) #o 1º id 
+                            
+                
+                if occ_id is not None:
+                    if self.occupants[occ_id][0] != -1:
+                        #ainda se pode salvar 
+                        timm = [6, 4, 2] #tempo de salvar proporcional ao nível do occ
+                        await asyncio.sleep(self.occupants[occ_id][0])
+
+                        # Set elf_bar of the target agent to infinity
+                        occ_id.white_ribons()
+                        print(f"Set elf_bar of agent {occ_id} to infinity.")
+
+                        #remove form list to_save
+                else:
+                    print(f"Agent with id {occ_id} not found or dead.")
+
+                self.occupants.pop(occ_id)#remover do dic
+
+        
+        # se ff -> o occ já foi visto por um médico(não sofre dano ao longo do tempo)
+        async def clear_path(self):
+            ''' 
+            se houver um problema de dimenções pequenas eles podem fazer com que ele desapareça
+            tem q ser no msm andar
+            '''
+            pass 
+        async def get_best_exit_rout(self):
+            ''' 
+            1-º se os andares entre o q está e a saída + proxima estiverem maus ou bons
+            2-º é possível, no andar onde está chegar ás escadas/saida
+            4-º qual é a janela acessível mais prox
+            ask BMS to see if can easly exit building(the floors belloy are in danger)
+            if not a good idea and no exterior stairs, use window
+            '''
+            pass
+
 
     class SaveThroughWindow(CyclicBehaviour):
         def __init__(self, agent_data, exits_available, stairs_available):
@@ -364,14 +418,6 @@ class ERAgent(Agent):
 
             se valores diff dos esperados gardar as alterações
         
-            neste caso, pedir por ajuda
-            -> paramédicos     type:1     n/ner >=7.5      
-            -> ff              type:2     n/ner >=5.5
-
-            neste caso criar lista de possíveis transferÊncias 
-            -> paramédicos     type:1     n/ner <=3.5      
-            -> ff              type:2     n/ner <=1.5
-
             '''
             n_paramed = []
             n_ff = []
@@ -379,9 +425,35 @@ class ERAgent(Agent):
                 if team[id] == 2: n_paramed+=1
                 if team[id] == 1: n_ff+=1
 
+            ''' 
+                        neste caso, pedir por ajuda
+            -> paramédicos     type:1     n/ner >=7.5      
+            -> ff              type:2     n/ner >=5.5
+
+            neste caso criar lista de possíveis transferÊncias 
+            -> paramédicos     type:1     n/ner <=3.5      
+            -> ff              type:2     n/ner <=1.5
+
+
+            '''
             #criar if para ver se quantidade de er é dentro do necessário
+            # FALTA A PARTE DE PEDIR POR 
             #paramed
-            
+            if len_to_save/n_paramed<=3.5:
+                for id, type_ in team.items():
+                    if type_ == 1:  
+                        can_give.append([id, type_]) 
+                        if len_to_save / n_paramed > 3.5: 
+                            break  
+            #ff
+            if len_to_save/n_ff<=1.5:
+                for id, type_ in team.items():
+                    if type_ == 2:  
+                        can_give.append([id, type_])  
+                        if len_to_save / n_ff > 1.5:  
+                            break  
+
+
             return n_paramed, n_ff
 
         async def its_hero_time(self, team, to_save, can_give):
@@ -414,8 +486,5 @@ class ERAgent(Agent):
                     
                 
             #self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]} 
-
-            
-        #vai continuamente saber quem já foi salvo e onde está toda a gente
             
         
