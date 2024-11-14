@@ -266,42 +266,42 @@ class ERAgent(Agent):
 
 
     class SaveThroughWindow(OneShotBehaviour):
-    async def run(self):
-        agent_id, health, x, y, z = self.agent_data
+        async def run(self):
+            agent_id, health, x, y, z = self.agent_data
 
-        if not self.exits_available and not self.stairs_available:
-            print(f"Agent {agent_id} is preparing to save through the window...")
+            if not self.exits_available and not self.stairs_available:
+                print(f"Agent {agent_id} is preparing to save through the window...")
 
-            #tentar encontrar janela acessível
-            window_position = await self.find_accessible_window(x, y, z)
-            if window_position:
-                print(f"Agent {agent_id} found an accessible window at {window_position}.")
-                await self.perform_save(agent_id, window_position)
+                #tentar encontrar janela acessível
+                window_position = await self.find_accessible_window(x, y, z)
+                if window_position:
+                    print(f"Agent {agent_id} found an accessible window at {window_position}.")
+                    await self.perform_save(agent_id, window_position)
 
+                else:
+                    print(f"No accessible windows found. Waiting for an exit or stairs.")
+                    await self.agent.async_sleep(2)
             else:
-                print(f"No accessible windows found. Waiting for an exit or stairs.")
+                print(f"Agent {agent_id} is waiting for an available exit or stairs.")
                 await self.agent.async_sleep(2)
-        else:
-            print(f"Agent {agent_id} is waiting for an available exit or stairs.")
-            await self.agent.async_sleep(2)
 
-    async def find_accessible_window(self, x, y, z):
-        windows = #posições das janelas
-        for window in windows:
-            wx, wy = window
-            if self.is_window_accessible(wx, wy, x, y):
-                return (wx, wy, z)
-        return None
+        async def find_accessible_window(self, x, y, z):
+            windows = self.agent.environment.windows_locations
+            for window in windows:
+                wx, wy = window
+                if self.is_window_accessible(wx, wy, x, y):
+                    return (wx, wy, z)
+            return None
 
-    def is_window_accessible(self, wx, wy, x, y):
-        distance = ((wx - x) ** 2 + (wy - y) ** 2) ** 0.5
-        return distance <= 1  #janela acessível se distância<=1..
+        def is_window_accessible(self, wx, wy, x, y):
+            distance = ((wx - x) ** 2 + (wy - y) ** 2) ** 0.5
+            return distance <= 1  #janela acessível se distância<=1..
 
-    async def perform_save(self, agent_id, window_position):
-        print(f"Agent {agent_id} is saving through the window at {window_position}...")
-        await asyncio.sleep(3)
-        print(f"Agent {agent_id} successfully saved the occupant through the window")
-        self.kill()
+        async def perform_save(self, agent_id, window_position):
+            print(f"Agent {agent_id} is saving through the window at {window_position}...")
+            await asyncio.sleep(3)
+            print(f"Agent {agent_id} successfully saved the occupant through the window")
+            self.kill()
 
 
     class AbductionOfOcc(OneShotBehaviour):
