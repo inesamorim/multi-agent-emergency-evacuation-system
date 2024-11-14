@@ -187,26 +187,8 @@ class ERAgent(Agent):
                 except ValueError as e:
                     print("Failed to convert data to integers. Check the data format:", e)
 
-        class Cure(OneShotBehaviour):
-            #TODO: when can we cure? Don't you gotta be next to the person?
-            def __init__(self, agent_data, to_help_list):
-                super().__init__()
-                self.agent_data=agent_data
-                self.to_help_list=to_help_list
 
 
-############################ ns se vai ser alterada ##############################
-        class Cure(OneShotBehaviour):
-            async def run(self):
-                agent_id, health, x, y, z = self.agent_data
-                print(f"Attempting to cure agent {agent_id}")
-                #imediato?
-                self.agent_data[1]=0 #curado, health_state=0 (?)
-                print(f"Agent {agent_id} has been cured")
-
-                if self.agent_data in self.to_help_list:
-                    self.to_help_list.remove(self.agent_data)
-############################ alternativa para PARAMED e FF ##############################
     class ToSaveOrNotToSave(OneShotBehaviour):
         # se paramed -> chegará beira da pessoa e invocar cura(dependedndo do estado demora x tempo)
         async def stagnation(self):
@@ -217,22 +199,14 @@ class ERAgent(Agent):
             Parameters:
                 occ (list): A list containing [occ_id, type, x, y, z]
             """
-
-
-        async def run(self):
-            agent_id, health, x, y, z = self.agent_data
-            if health == 0 and not self.exits_available and not self.stairs_available:
-                print(f"Agent {agent_id} was saved through the window")
-                self.agent.environment.occupants_loc.pop(str(self.agent.jid))
-                self.agent.stop()
             if self.type == 1:
                 # Assuming that occ_id can be used to access the agent instance
-                occ_id = next(iter(self.occupants)) #o 1º id
-
-
+                occ_id = next(iter(self.occupants)) #o 1º id 
+                            
+                
                 if occ_id is not None:
                     if self.occupants[occ_id][0] != -1:
-                        #ainda se pode salvar
+                        #ainda se pode salvar 
                         timm = [6, 4, 2] #tempo de salvar proporcional ao nível do occ
                         await asyncio.sleep(self.occupants[occ_id][0])
 
