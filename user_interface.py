@@ -15,7 +15,10 @@ class BuildingInterface:
         self.root = tk.Tk()
         self.root.title("Multi-Agent Emergency Evacuation System")
 
-        #icons
+        
+
+        
+        """#icons
         self.open_door_img = PhotoImage(file="./icons/open_door.png")
         self.exit_img = Image.open("./icons/exit.png").resize((2, 2), Image.Resampling.LANCZOS)
         print(self.exit_img.size)
@@ -104,7 +107,7 @@ class BuildingInterface:
 def start_interface(environment):
     interface = BuildingInterface(environment)
     interface.run()
-
+"""
 
 """class EvacuationUI:
     

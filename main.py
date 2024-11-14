@@ -4,16 +4,22 @@ import spade
 import asyncio
 from datetime import datetime
 import threading
-from user_interface import start_interface
+from ui import start_interface
 import random
+
+def start_tkinter_interface(environment):
+    start_interface(environment)
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(num_floors=3, num_occupants=10, num_er=5)
+    environment = Environment(num_floors=4, num_occupants=10, num_er=5)
+    #await asyncio.sleep(10)
 
     #start user interface
-    #interface_thread = threading.Thread(target=start_interface, args=(environment,))
-    #interface_thread.start()
+    interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
+    interface_thread.start()
+
+    await asyncio.sleep(30)
     
     async def enqueue_agent(agent):
         await agent.start(auto_register=True)
@@ -96,21 +102,22 @@ async def main():
                 y = pos[1]
                 z = pos[2]
                 x1 = [x-1, x+1]
-                y1 = [y-1, y-2]
+                y1 = [y-1, y+1]
                 for i in range(len(x1)):
                     for j in range(len(y1)):
                         new_pos = (i,j,z)
-                        print(f"The fire as now expanded to position {new_pos}")
-                        if environment.building[z][i][j] == 4:
-                            #occupant dies
-                            for agent_id in environment.occupants_loc.keys():
-                                if environment.occupants_loc[str(agent_id)] == new_pos:
-                                    to_pop.append(str(agent_id))
-                                for agent in occupants:
-                                    if agent.jid == agent_id:
-                                        agent.stop()
-                environment.building[z][i][j] = 5 # fire
-                to_add.append(new_pos)
+                        if i >= 0 and i < environment.grid_size and j >= 0 and j < environment.grid_size:
+                            print(f"The fire as now expanded to position {new_pos}")
+                            if environment.building[z][i][j] == 4:
+                                #occupant dies
+                                for agent_id in environment.occupants_loc.keys():
+                                    if environment.occupants_loc[str(agent_id)] == new_pos:
+                                        to_pop.append(str(agent_id))
+                                    for agent in occupants:
+                                        if agent.jid == agent_id:
+                                            agent.stop()
+                        environment.building[z][i][j] = 5 # fire
+                        to_add.append(new_pos)
         for i in to_add:
             environment.obstacles[i] = 'fire'
         for i in to_pop:
