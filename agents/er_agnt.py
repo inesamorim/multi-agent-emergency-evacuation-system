@@ -412,6 +412,15 @@ class ERAgent(Agent):
             #se get_team for constantemente atualizada não necessita de trafg_ER_from()
             pass
 
+
+        async def call_for_suport(self, p_in_need, ff_in_need):
+            ''' manda msg a todos os cap a pedir pelo nº de paramédicos e ff em falta'''
+            agents = self.agent.environment.get_all_er_roles()
+            # Send the p_in_need, ff_in_need to all other agents in the list
+            for id, cap in agents:   #{id:cap}
+                if id != self.agent_id and cap:  # Skip sending to self  cap true se é cap
+                    id.receive_message(p_in_need, ff_in_need, self.agent_id) #self.agent_id quem pediu ajuda
+
         async def get_n_of(self, team, len_to_save, can_give):
             ''' 
             ver quantos menmbros da eq são paramed e quantos são ff 
@@ -436,8 +445,6 @@ class ERAgent(Agent):
 
 
             '''
-            #criar if para ver se quantidade de er é dentro do necessário
-            # FALTA A PARTE DE PEDIR POR 
             #paramed
             if len_to_save/n_paramed<=3.5:
                 for id, type_ in team.items():
@@ -445,13 +452,36 @@ class ERAgent(Agent):
                         can_give.append([id, type_]) 
                         if len_to_save / n_paramed > 3.5: 
                             break  
+            
+            elif len_to_save/n_paramed>=7.5:
+                p_in_need = 0
+                for id, type_ in team.items():
+                    if type_ == 1:  
+                        p_in_need+=1
+                        if len_to_save / n_paramed < 7.5: 
+                            break
+
             #ff
             if len_to_save/n_ff<=1.5:
                 for id, type_ in team.items():
                     if type_ == 2:  
                         can_give.append([id, type_])  
                         if len_to_save / n_ff > 1.5:  
-                            break  
+                            break 
+
+            elif len_to_save/n_paramed>=5.5:
+                #in need
+                ff_in_need = 0
+                for id, type_ in team.items():
+                    if type_ == 1:  
+                        ff_in_need+=1
+                        if len_to_save / n_paramed < 5.5: 
+                            break
+
+ 
+            if p_in_need>0 or ff_in_need>0:
+                self.call_for_suport(p_in_need, ff_in_need) #manda ms a pedir pelo nº de pessoas q necessita
+                
 
 
             return n_paramed, n_ff
