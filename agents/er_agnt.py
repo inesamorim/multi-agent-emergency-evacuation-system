@@ -449,10 +449,23 @@ class ERAgent(Agent):
             '''
             return p_in_need, ff_in_need
 
-        async def get_order_for_loors():
-            
 
-            pass
+        def get_order_for_loors(self, pos):
+            # Create a list of tuples (distance, index, element) for each element in lst
+            #z_tot = self.agent.environment.num_floors()
+            lst = [i for i in range(self.agent.environment.num_floors())]
+
+            elements_with_distance = [
+                (abs(i - pos), i, lst[i]) for i in range(len(lst))
+            ]
+            
+            # Sort by distance, and in case of tie, by index
+            elements_with_distance.sort(key=lambda x: (x[0], x[1]))
+
+            # Extract the sorted elements only (ignoring distance and index)
+            reordered_list = [element for _, _, element in elements_with_distance if _ != pos]
+
+            return reordered_list
 
 
         async def call_for_suport(self, p_in_need, ff_in_need):
@@ -467,8 +480,10 @@ class ERAgent(Agent):
                 agents_f = self.agent.environment.get_er_in_floor(z)
                 for agent in agents_f:
                     if self.agent.environment.er_role[agent]:
-                        self.trafg_ER_to(self, p_in_need, ff_in_need, self.agen.jid, id)
-
+                        p_in_need, ff_in_need = self.trafg_ER_to(self, p_in_need, ff_in_need, self.agen.jid, id)
+                if p_in_need == 0 and ff_in_need == 0:
+                    return -1
+            return 1 #não conseguiu, ainda necessita de ajuda
 
         async def get_n_of(self, team, len_to_save):
             '''
