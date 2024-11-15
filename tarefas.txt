@@ -5,6 +5,9 @@ User Interface: de dois em dois segundos:
 
 Occupant Agent:
     [x] retornar possible moves para cada pessoa (tendo em conta a mobilidade da pessoa)*
+        [] alterar para tentar ver melhor pos sabendo q quere estar o mais longe do fogo e o mais perto da saida
+        se o melhor moove é ficar auieto aceita todos os poss_moves(ficar mais distante da saida) e com probs mover-se 
+        aleatóriamente para locais diferentes
     [] lifebar reduction in LifeBar
     [] se a pessoa se move para stairs, automaticamente muda de floor
     [] se a pessoa se move para a saída, automaticamente sai do building
