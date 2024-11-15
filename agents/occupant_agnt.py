@@ -8,6 +8,8 @@ import spade
 import numpy as np
 from spade.message import Message
 import ast
+###### BOB WAS HERE ######
+import heapq
 
 
 MAX_HEALTH = 1000   #sempre q num quadrado com fumo, sofre dano
@@ -19,6 +21,9 @@ class OccupantAgent(Agent):
         self.floor = self.environment.get_occupant_loc(self.jid)[2]
         self.elf = self.environment.get_occupant_state(self.jid)
         self.elf_bar = MAX_HEALTH    #quando chegar a 0 -> muda de nível 
+        ###### BOB WAS HERE ######
+        self.path = []
+
     
 
     async def setup(self):
@@ -204,7 +209,6 @@ class OccupantAgent(Agent):
 
             if min_dist == np.sqrt((len(grid))**2 * 2)+1:
                 return -1 #windows are blocked
-
             return x1, y1
                     
         def closeste_stairs(self):
@@ -298,7 +302,7 @@ class OccupantAgent(Agent):
                     if self.is_possible_move(x1[i],y1[j], grid_z):
                         possible_moves.append((x1[i], y1[j], self.agent.floor))
 
-
+            
 
             #encurtar a lista até o poss_move == curr_move
             filtered_coordinates = []
@@ -308,6 +312,129 @@ class OccupantAgent(Agent):
                     break  
 
             return filtered_coordinates
+
+
+
+        #------------------------------------BOB-WAS-HERE------------------------------------#
+
+
+        def astar_possible_moves(self, x, y):
+            _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            grid_z = self.agent.environment.get_grid(z) #no futuro alterar para BMS.get_floor(z) ->return grid
+            
+            ''' 
+                1->portas 
+                2->janelas
+                3->escadas
+                4->pessoas
+                5->obstáculos
+                6->saída
+            '''
+
+            x1 = [x-2, x-1, x, x+1, x+1]
+            y1 = [y-2, y-1, y, y+1, y+2]
+            possible_moves = []
+            for i in range(5):
+                for j in range(5):
+                    if self.is_possible_move(x1[i],y1[j], grid_z):
+                        possible_moves.append((x1[i], y1[j], self.agent.floor))
+
+            return possible_moves
+        
+        def find_path(self, target):
+            """
+            Finds a path to the target using A*.
+            returns what it thinks is the best path
+
+            used after defining clossest exit, 
+            if no path foiund, go to next closest exit
+            until no exit 
+            after just run from fire
+            
+            make it so that they only jump if told so
+            else sudoku igs
+
+            h = dist até target
+            g = quantidade de movimentos usados 
+            f = g + h
+            
+            
+            [[1,5,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,0,1,1,1,1,1,0,0,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,1,0,0,0,1,1],
+            [1,1,0,0,0,0,0,0,0,0,1,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0],
+            [1,0,1,1,1,1,1,0,0,0,(x,y),1],
+            [1,1,1,1,1,1,1,1,1,1,1,1]]       ->testar com cenario específico apenas um occ e sem incêndio, 
+                                                ativar só a emergência
+            
+            """
+            
+            open_set = []
+            position = self.environment.get_occupant_loc(self.jid)
+            heapq.heappush(open_set, (0, position))  # Priority queue with (cost, position)
+            came_from = {}
+            g_score = {position: 0}
+            f_score = {position: self.heuristic(position, target)}
+
+            while open_set:
+                _, current = heapq.heappop(open_set)
+
+                # Exit reached
+                if current == target:  
+                    #o occ guarda o caminho q quer fazer 
+                    self.path = self.reconstruct_path(came_from, current)
+                    return self.path
+
+
+
+                x, y = current
+                neighbors = self.astar_possible_moves(x, y) #where he can walk to(they are poss moves)
+                for nx, ny in neighbors:
+                    tentative_g_score = g_score[current] + 1
+                    if tentative_g_score < g_score.get((nx, ny), float('inf')):
+                        came_from[(nx, ny)] = current
+                        g_score[(nx, ny)] = tentative_g_score
+                        f_score[(nx, ny)] = tentative_g_score + self.heuristic((nx, ny), target)
+
+                        # Avoid duplicates in the open_set
+                        if (nx, ny) not in f_score:
+                            heapq.heappush(open_set, (f_score[(nx, ny)], (nx, ny)))
+
+            return None  # No path found
+
+        def heuristic(self, a, b):
+            """
+            ?Euclidean? distance heuristic for grid navigation.
+            """
+            return np.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
+
+        def reconstruct_path(self, came_from, current):
+            """
+            Reconstructs the path from start to target.
+
+            exp:
+            came_from = {
+                (C): (B),
+                (B): (A),
+                (A): (start)
+            }
+
+            chamado pela find_path para dar o caminho esperado
+            """
+            path = []
+            while current in came_from:
+                path.append(current)
+                current = came_from[current]
+            path.reverse()
+            return path
+
+
+        #------------------------------------BOB-WAS-HERE------------------------------------#
+
 
         def get_distance(self, x, y):
             #exits_loc = função q devolve a loc das escadas, saídas e janelas 
