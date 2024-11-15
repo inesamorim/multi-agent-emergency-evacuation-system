@@ -272,14 +272,13 @@ class ERAgent(Agent):
             if not self.exits_available and not self.stairs_available:
                 print(f"Agent {agent_id} is preparing to save through the window...")
 
-                #tentar encontrar janela acessível
                 window_position = await self.find_accessible_window(x, y, z)
                 if window_position:
                     print(f"Agent {agent_id} found an accessible window at {window_position}.")
                     await self.perform_save(agent_id, window_position)
 
                 else:
-                    print(f"No accessible windows found. Waiting for an exit or stairs.")
+                    print(f"No accessible windows found on any floor.")
                     await self.agent.async_sleep(2)
             else:
                 print(f"Agent {agent_id} is waiting for an available exit or stairs.")
@@ -291,6 +290,15 @@ class ERAgent(Agent):
                 wx, wy = window
                 if self.is_window_accessible(wx, wy, x, y):
                     return (wx, wy, z)
+
+            for floor in range(len(self.agent.environment.windows_locations)):
+                if floor != z:
+                    windows = self.agent.environment.windows_locations[floor]
+                    for window in windows:
+                        wx, wy = window
+                        if self.is_window_accessible(wx, wy, x, y):
+                            return (wx, wy, floor)
+
             return None
 
         def is_window_accessible(self, wx, wy, x, y):
@@ -301,6 +309,10 @@ class ERAgent(Agent):
             print(f"Agent {agent_id} is saving through the window at {window_position}...")
             await asyncio.sleep(3)
             print(f"Agent {agent_id} successfully saved the occupant through the window")
+            
+            #self.exits_available.append(window_position)
+            self.agent.environment.exits.add(window_position)
+            self.agent.environment.windows.remove(window_position)
             self.kill()
 
 
@@ -346,7 +358,7 @@ class ERAgent(Agent):
                 #fora da grid
                 return False
 
-            if (grid[x][y]!=0)or(grid[x][y]!=3):
+            if (grid[x][y]!=0) or (grid[x][y]!=3):
                 #obstaculo
                 return False
 
@@ -513,7 +525,6 @@ class ERAgent(Agent):
             ver quantos menmbros da eq são paramed e quantos são ff
 
             se valores diff dos esperados gardar as alterações
-
             '''
             n_paramed = []
             n_ff = []
@@ -526,7 +537,7 @@ class ERAgent(Agent):
             -> paramédicos     type:1     n/ner >=7.5
             -> ff              type:2     n/ner >=5.5
 
-            neste caso criar lista de possíveis transferÊncias
+            neste caso criar lista de possíveis transferências
             -> paramédicos     type:1     n/ner <=3.5
             -> ff              type:2     n/ner <=1.5
 
