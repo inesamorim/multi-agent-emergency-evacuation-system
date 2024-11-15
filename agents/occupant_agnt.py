@@ -12,7 +12,7 @@ import ast
 import heapq
 
 
-MAX_HEALTH = 1000   #sempre q num quadrado com fumo, sofre dano
+MAX_HEALTH = 50   #sempre q num quadrado com fumo, sofre dano
 
 class OccupantAgent(Agent):
     def __init__(self, jid, password, environment):
