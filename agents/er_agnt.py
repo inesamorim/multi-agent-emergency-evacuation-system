@@ -225,12 +225,35 @@ class ERAgent(Agent):
 
 
         # se ff -> o occ já foi visto por um médico(não sofre dano ao longo do tempo)
-        async def clear_path(self):
+        async def clear_path(self, vetor):
             '''
             se houver um problema de dimenções pequenas eles podem fazer com que ele desapareça
             tem q ser no msm andar
+
+            a função é chamada quando se encontra fogo no caminho 
+
+            recebe o vetor da direção, e vê 7 casas à frente e só apaga o fogo se houver pelo menos 
+            um quadrado não em chamas(apaga enguanto passa)
             '''
+            #vetor = [1, -1] exemplo 
+            x, y, z = self.agent.environment.get_er_loc(self.agent.jid)
+            can = 1
+            while [x+can*vetor[0], y+can*vetor[1], z] in self.agent.environment.obstacles[x+can*vetor[0], y+can*vetor[1], z]:
+                can+=1
+            if can!=7:
+                self.make_wave(vetor)
+
+        async def make_wave(self, vector):
+
+            x, y, z = self.agent.environment.get_er_loc(self.agent.jid)
+
+            can = 1
+            while [x+can*vector[0], y+can*vector[1], z] in self.agent.environment.obstacles[x+can*vector[0], y+can*vector[1], z]:
+                can+=1
+                self.agent.environment.obstacles.pop(x+can*vector[0], y+can*vector[1], z)
+
             pass
+
         async def get_best_exit_rout(self):
             '''
             1-º se os andares entre o q está e a saída + proxima estiverem maus ou bons
@@ -388,7 +411,7 @@ class ERAgent(Agent):
         async def run(self):
 
             # Check if self.cap from the outer ER class is True
-            if self.cap:
+            if self.er_role(self.agent.jid):
                 # Perform actions only if cap is True
                 print("KarenOfFloor is active and performing tasks.")
 
