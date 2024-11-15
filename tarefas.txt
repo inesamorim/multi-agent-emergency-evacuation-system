@@ -18,6 +18,15 @@ BMS has information -> ocupante recebe information -> ocupante faz lista de poss
 
 [x] sincronizar o inicio dos agentes - Inês
 [] em ui, na função demand_list, occupant agent não está a ser devidamente identificado - Dani
+
+
+TO DO:
+[] smoke only appears if there's fire - Inês
+[] pôr a funcionar savethroughwindow - Inês - not working
+[] chamar  mais er agents conforme necessário - Dani
+[x] floor alocado ao er_agent
+-----
+
 ----------------------------------------------------------------------------------------------------------------------------------------------
 Behaviours:
 

@@ -19,9 +19,8 @@ class ERAgent(Agent):
         ###### BOB WAS HERE ######
         self.helping = False #se está a transportar alguém
         self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]}
-        self.floor = self.environment.send_plan_to_bms()  #ou recebem o andar onde estão ou recebem a grid toda
         self.busy = True
-        self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
+        self.building = self.environment.get_building()
         self.occupant_info = None
 
     async def add_patient(self, patient_inf):
@@ -48,7 +47,7 @@ class ERAgent(Agent):
 
     async def setup(self):
         print(f"ER Agent {self.jid} of type {self.type} is starting...")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.1)
 
 
     class GoToBuilding(OneShotBehaviour):
@@ -69,30 +68,39 @@ class ERAgent(Agent):
 
         def distribution(self, agents_per_floor, resto):
             z = 0
-            for i in range(0,self.agent.environment.num_er,agents_per_floor):
-                z1 = 0
-                if z >= self.agent.environment.num_floors:
-                    for j in range(i, i+resto):
-                        er_id = f"eragent{j}@localhost"
-                        floor = z1
-                        pos = self.possible_pos(floor)
-                        print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
-                        self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
-                    z1 += 1
-                    break
-                #print(f"i: {i}")
-                for j in range(i, i+agents_per_floor):
-                    #print(f"j: {j}")
-                    er_id = f"eragent{j}@localhost"
-                    if i == j:
-                        self.agent.environment.update_er_role(er_id, True)
-                        #print(self.agent.environment.er_role[str(er_id)])
-                        print(f"ER agent {er_id} is assigned captain of floor {z}")
-                    floor = z
+            if agents_per_floor == 0:
+                for i in range(self.agent.environment.num_er):
+                    floor = i
+                    er_id = f"eragent{i}@localhost"
                     pos = self.possible_pos(floor)
                     print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
                     self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
-                z += 1
+
+            else:
+                for i in range(0,self.agent.environment.num_er,agents_per_floor):
+                    z1 = 0
+                    if z >= self.agent.environment.num_floors:
+                        for j in range(i, i+resto):
+                            er_id = f"eragent{j}@localhost"
+                            floor = z1
+                            pos = self.possible_pos(floor)
+                            print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                            self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                        z1 += 1
+                        break
+                    #print(f"i: {i}")
+                    for j in range(i, i+agents_per_floor):
+                        #print(f"j: {j}")
+                        er_id = f"eragent{j}@localhost"
+                        if i == j:
+                            self.agent.environment.update_er_role(er_id, True)
+                            #print(self.agent.environment.er_role[str(er_id)])
+                            print(f"ER agent {er_id} is assigned captain of floor {z}")
+                        floor = z
+                        pos = self.possible_pos(floor)
+                        print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                        self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                    z += 1
 
         def distribute_by_floor(self):
             #TODO: se as escadas no andar 'x' estão impedidas por um obstáculo, então os er agents podem apenas ser distribuidos pelos andares anteriores?
@@ -266,32 +274,32 @@ class ERAgent(Agent):
 
 
     class SaveThroughWindow(OneShotBehaviour):
-    async def run(self):
-        agent_id, health, x, y, z = self.agent_data
+        async def run(self):
+            agent_id, health, x, y, z = self.agent_data
 
-        if not self.exits_available and not self.stairs_available:
-            print(f"Agent {agent_id} is preparing to save through the window...")
+            if not self.exits_available and not self.stairs_available:
+                print(f"Agent {agent_id} is preparing to save through the window...")
 
-            #tentar encontrar janela acessível
-            window_position = await self.find_accessible_window(x, y, z)
-            if window_position:
-                print(f"Agent {agent_id} found an accessible window at {window_position}.")
-                await self.perform_save(agent_id, window_position)
+                #tentar encontrar janela acessível
+                window_position = await self.find_accessible_window(x, y, z)
+                if window_position:
+                    print(f"Agent {agent_id} found an accessible window at {window_position}.")
+                    await self.perform_save(agent_id, window_position)
 
+                else:
+                    print(f"No accessible windows found. Waiting for an exit or stairs.")
+                    await self.agent.async_sleep(2)
             else:
-                print(f"No accessible windows found. Waiting for an exit or stairs.")
+                print(f"Agent {agent_id} is waiting for an available exit or stairs.")
                 await self.agent.async_sleep(2)
-        else:
-            print(f"Agent {agent_id} is waiting for an available exit or stairs.")
-            await self.agent.async_sleep(2)
 
-    async def find_accessible_window(self, x, y, z):
-        windows = #posições das janelas
-        for window in windows:
-            wx, wy = window
-            if self.is_window_accessible(wx, wy, x, y):
-                return (wx, wy, z)
-        return None
+        async def find_accessible_window(self, x, y, z):
+            windows = [] #posições das janelas
+            for window in windows:
+                wx, wy = window
+                if self.is_window_accessible(wx, wy, x, y):
+                    return (wx, wy, z)
+            return None
 
     def is_window_accessible(self, wx, wy, x, y):
         distance = ((wx - x) ** 2 + (wy - y) ** 2) ** 0.5

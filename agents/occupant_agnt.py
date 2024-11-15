@@ -17,18 +17,18 @@ class OccupantAgent(Agent):
         super().__init__(jid, password)
         self.environment = environment
         self.floor = self.environment.get_occupant_loc(self.jid)[2]
-        ##hellf
         self.elf = self.environment.get_occupant_state(self.jid)
-
         self.elf_bar = MAX_HEALTH    #quando chegar a 0 -> muda de nível 
     
 
     async def setup(self):
+        #initialize occupant agent
         print(f"Occupant {self.jid} starting ...")
         print(f"Initial position: {self.environment.get_occupant_loc(self.jid)}")
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.1)
     
     class ReceiveWarning(OneShotBehaviour):
+            #receive warning from BMS saying there is an emergency
             async def run(self):
                 msg = await self.receive(timeout=10)
                 if msg:
@@ -38,10 +38,11 @@ class OccupantAgent(Agent):
 
 
 
-
     class  HOFAH(CyclicBehaviour):
         ''' 
-        se occ tiver no pick da health, não pede ajuda, só foge
+        ER Agents ask for a health check and if the occupant is not dead or already saved,
+        responds with is health state
+        if health < 2, ER Agent tries to cure occupant
         '''
         #recebe msg asking for health state
         async def run(self):
@@ -73,9 +74,8 @@ class OccupantAgent(Agent):
 
     class LifeBar(CyclicBehaviour):
         '''
-        tudo o que tem a ver com alterações de heath do occ
-        if quadrado em q está == fumo
-                self.elf_bar -= 1'''
+        if an occupant is a cell with smoke, then he progressively loses health
+        '''
         async def run(self):
             x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
             #se estiver num local com fumo ativar lower_life_spam
@@ -97,7 +97,9 @@ class OccupantAgent(Agent):
             
     #occorre normalmente está constantemente a ser feita
     class EvacuateBehaviour(CyclicBehaviour):  
+        """occupants move to the exit"""
         async def run(self):
+
             hierarchy = self.prefered_moves() #array with possible moves ordered by distance to closest exit or stairs
             msg = Message(to="building@localhost")
             msg.set_metadata("performative", "informative")
@@ -110,10 +112,9 @@ class OccupantAgent(Agent):
             response = await self.receive(timeout=10) 
 
             if response:
-                print(response.body)
                 await self.process_move(response.body)
             else:
-                print(f"Occupant {self.agent.jid} didn't receive any info from BMS")
+                print(f"Occupant {self.agent.jid} didn't move")
 
             await asyncio.sleep(2)
 
@@ -123,31 +124,89 @@ class OccupantAgent(Agent):
                 pos = ast.literal_eval(pos_str)
                 exits = self.agent.environment.get_all_exits_loc()
                 stairs = self.agent.environment.stairs_locations
+                windows = self.agent.environment.windows_locations
+                grid = self.agent.environment.get_grid(pos[2])
                 if pos in exits:
-                    print(f"Occupant {self.agent.jid} is moving to new position {pos}")
+                    #print(f"Occupant {self.agent.jid} is moving to new position {pos}")
                     #leave building
-                    self.agent.environment.leave_building(self.agent.jid)
-                    print(f"Occupant {self.agent.jid} left the building safely")
-                    await self.agent.stop()
+                    if self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                        self.agent.environment.leave_building(self.agent.jid)
+                        print(f"Occupant {self.agent.jid} left the building safely")
+                        await self.agent.stop()
                 
                 elif pos in stairs:
-                    #change floor
-                    new_pos = self.leavefloor(pos[2]-1)[0]
-                    #print(f"new_pos: {new_pos}")
-                    print(f"Occupant {self.agent.jid} is moving to floor {pos[2]-1} and heading to new position {new_pos}")
-                    self.agent.environment.update_occupant_position(self.agent.jid, *new_pos)
-                    self.agent.floor = new_pos[2]
+                    if self.leavefloor(pos[2]-1, pos=pos) != []:
+                        #change floor
+                        grid = self.agent.environment.get_grid(pos[2]-1)
+                        new_pos = self.leavefloor(pos[2]-1, pos=pos)[0]
+                        #print(f"new_pos: {new_pos}")
+                        if self.is_possible_move(new_pos[0], new_pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys() and pos not in self.agent.environment.obstacles.keys():
+                            print(f"Occupant {self.agent.jid} is moving to floor {pos[2]-1} and heading to new position {new_pos}")
+                            self.agent.environment.update_occupant_position(self.agent.jid, *new_pos)
+                            self.agent.floor = new_pos[2]
+                    else:
+                        print(f"The stairs in floor {pos[2]} are blocked. Occupant {self.agent.jid} is going to the window")
+                        new_pos = self.closest_windows()
+                        if new_pos != -1 and self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                            self.agent.environment.update_occupant_position(self.agent.jid, *new_pos, self.agent.__annotations__occupants_loc[str(self.agent.jid)][2])
+                        #TODO: ask for someone to catch him
+
+                elif pos in windows:
+                    print(f"Occupant {self.agent.jid} threw himself out the window in floor {pos[2]}")
+                    #TODO: check if he is alive
+                    self.agent.environment.occupants_loc.pop(str(self.agent.jid))
+                    self.agent.environemnt.occupants_saved += 1 #assuming he survived
+                    await self.agent.stop()
+
 
                 else:
-                    print(f"Occupant {self.agent.jid} is moving to new position {pos}")
-                    self.agent.environment.update_occupant_position(self.agent.jid, *pos)
+                    if self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                        print(f"Occupant {self.agent.jid} is moving to new position {pos}")
+                        self.agent.environment.update_occupant_position(self.agent.jid, *pos)
 
                 #print(f"Occupant {self.agent.jid} is now in position {self.agent.environment.get_occupant_loc(self.agent.jid)}")
             else:
-                print(f"Occupant {self.agent.jid} did not receive a valid position")
+                print(f"Occupant {self.agent.jid} didn't move")
 
         
+        def distance_to_window(self):
+            min_dist = len(self.agent.environment.get_grid(0)) + 2
+            x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            best_pos = (-1,-1,-1)
+            for loc in self.agent.environment.windows_locations:
+                xw, yw, zw = loc
+                if z == zw:
+                    possible_moves = self.possible_moves()
+                    for pos in possible_moves:
+                        dist = np.sqrt((pos[0]-xw)**2+(pos[1]-yw)**2)
+                        if dist < min_dist: best_pos = pos
+            return best_pos
+        
+        def closest_windows(self):
+            x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            grid = self.agent.environment.get_grid(z)
+            possible_windows = self.agent.environment.get_windows_loc(z)
 
+            if not possible_windows: return -1
+
+            min_dist = np.sqrt((len(grid))**2 * 2)+1
+            i = 0
+            pos = (0,0)
+
+            for position in possible_windows:
+                x1 = position[0]
+                y1 = position[1]
+                dist = np.sqrt((x-x1)**2 + (y-y1)**2)
+                if dist < min_dist:
+                    min_dist = dist
+                    pos = (x1,y1)
+                i += 1
+
+            if min_dist == np.sqrt((len(grid))**2 * 2)+1:
+                return -1 #windows are blocked
+
+            return x1, y1
+                    
         def closeste_stairs(self):
             x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
             possible_stairs = self.agent.environment.get_stairs_loc(z)
@@ -204,7 +263,7 @@ class OccupantAgent(Agent):
                 #fora da grid
                 return False
             
-            if grid[x][y] == 5:
+            if grid[x][y] != 0 and grid[x][y] != 6 and grid[x][y] != 3: 
                 #obstaculo
                 return False
             
@@ -251,7 +310,7 @@ class OccupantAgent(Agent):
             return filtered_coordinates
 
         def get_distance(self, x, y):
-            #exits_loc = função q devolve a loc das escadas e janelas(se andar 0) do andar(z)
+            #exits_loc = função q devolve a loc das escadas, saídas e janelas 
             z = self.agent.floor
             grid = self.agent.environment.get_grid(z)
             #search for closest exit
@@ -267,6 +326,14 @@ class OccupantAgent(Agent):
                     d = np.sqrt((stairs[0] -x)**2 + (stairs[1] - y)**2)
                     if d<dist:
                         dist = d
+                if dist >= np.sqrt((len(grid))**2 *2)+1:
+                    #no available stairs
+                    #searching for closest window
+                    for window in self.agent.environment.get_windows_loc(z):
+                        d = np.sqrt((window[0] -x)**2 + (window[1] - y)**2)
+                        if d<dist:
+                            dist = d
+
             return dist
         
         def prefered_moves(self):
@@ -284,8 +351,8 @@ class OccupantAgent(Agent):
             return sorted_coordinates
         
         #quando no quadrado 4(escadas) muda de andar
-        def leavefloor(self,  chosen_z): #cima baixo  0 desce 1 sobe cb: bool=False,
-            x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+        def leavefloor(self,  chosen_z, pos): #cima baixo  0 desce 1 sobe cb: bool=False,
+            x, y, z = pos[0], pos[1], pos[2]
             self.floor = self.agent.environment.get_grid(chosen_z)
             #sself.agent.environment.update_occupant_position(self.agent.jid, x, y, chosen_z)#desce as escadas fora do tempo
             x1 = [x-1, x, x+1]
@@ -296,7 +363,7 @@ class OccupantAgent(Agent):
                 for j in range(3):
                     if (x==x1[i] and y==y1[j]):
                         pass
-                    if self.is_possible_move(x1[i],y1[j], self.floor):
+                    elif self.is_possible_move(x1[i],y1[j], self.floor):
                         possible_moves.append((x1[i], y1[j], chosen_z))
 
             #retorna locais onde possa ficar 

@@ -29,12 +29,15 @@ class Environment:
                             "Door 1": 'closed'}
         
         #WINDOWS INFO
-        self.windows_locations = [(2, 0, 0), (7, 9, 0)]
+        self.windows_locations = []
+        self.windows_state = {} # dic -> {Windowi: state}
+        for i in range(self.num_floors):
+            self.windows_locations.append((2,0,i))
         for x, y, z in self.windows_locations:
             self.building[z][x][y] = 2 
-        self.windows_state = {"Window 1": 'closed',
-                            "Window 2": 'closed'}
-        
+            window = f"Window{i}"
+            self.windows_state[str(window)] = 'open'
+
         #STAIRS INFO
         self.stairs_locations = []
         for i in range(self.num_floors):
@@ -78,7 +81,8 @@ class Environment:
         smoke - everyone can pass trhough, but loses health
         obstacle (algo que caiu do teto, etc) - no one passes through
         """
-        self.obstacles_type = ['fire', 'smoke', 'obstacle']
+        self.smoke_pos = []
+        self.obstacles_type = ['fire','obstacle']
         self.obstacles = {} # loc: type
         #self.obstacles_loc = []
         #for x, y, z in self.obstacles_loc:
@@ -157,6 +161,13 @@ class Environment:
         door_location = self.doors_locations[door_id]
         
         return door_status, door_location
+    
+    def get_windows_loc(self, floor):
+        locs = []
+        for x, y, z in self.windows_locations:
+            if z == floor:
+                locs.append((x,y))
+        return locs
     
     
     def get_stairs_loc(self, floor):

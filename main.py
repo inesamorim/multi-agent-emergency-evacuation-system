@@ -12,14 +12,14 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(num_floors=4, num_occupants=10, num_er=5)
+    environment = Environment(num_floors=8, num_occupants=30, num_er=5)
     #await asyncio.sleep(10)
 
     #start user interface
     interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
     interface_thread.start()
 
-    await asyncio.sleep(30)
+    await asyncio.sleep(5) #let interface load
     
     async def enqueue_agent(agent):
         await agent.start(auto_register=True)
@@ -54,7 +54,9 @@ async def main():
     await enqueue_agent(building_agent)
     print("\n")
     
+    
     print("#####################################################################")
+    environment.start_time = datetime.now()
     print(f"All agents created. Starting simulation at {environment.start_time}")
     print("#####################################################################")
 
@@ -63,31 +65,36 @@ async def main():
     async def make_disasters():
         disaster = random.choice(environment.obstacles_type)
         positions = environment.get_available_positions()
-        if disaster == 'smoke':
-            #everyone can pass through, we don't add it to the grid but we know where it is
-            positions = environment.get_all_positions()
-            pos = random.choice(positions)
-            environment.obstacles[(pos)] = disaster
-            print("#############################################")
-            print(f"There is smoke in position {pos}")
-            print("#############################################")
-        elif disaster == 'fire':
+        if disaster == 'fire':
             #firefighters can passthough, we add it to the grid
-            #TODO: fogo alastra-se?
             pos = random.choice(positions)
             environment.obstacles[(pos)] = disaster
             environment.building[pos[2]][pos[0]][pos[1]] = 5 #fire
-            print("#############################################")
+            print("\n")
+            print("##############################################")
             print(f"There is a fire starting in position {pos}")
-            print("#############################################")
+            print("##############################################")
+            print("\n")
+            print("\n")
+            x = pos[0]
+            y = pos[1]
+            x1 = [x-1, x, x+1]
+            y1 = [y-1, y, y+1]
+            #there is smoke all around fires
+            for i in x1:
+                for j in y1:
+                    if i >= 0 and i < environment.grid_size and j >= 0 and j < environment.grid_size:
+                        environment.smoke_pos.append((i,j,pos[2]))
         else:
             #no one can pass through, we add it to the grid
             pos = random.choice(positions)
             environment.obstacles[(pos)] = disaster
             environment.building[pos[2]][pos[0]][pos[1]] = 8 #obstacle
+            print("\n")
             print("#############################################")
             print(f"There is an obstacle in position {pos}")
             print("#############################################")
+            print("\n")
 
     async def manage_disasters():
         #se existe fogo num certo sítio, ele vai alastrar-se e matar quem estiver nos lugares para onde se alastrou
@@ -101,13 +108,20 @@ async def main():
                 x = pos[0]
                 y = pos[1]
                 z = pos[2]
-                x1 = [x-1, x+1]
-                y1 = [y-1, y+1]
-                for i in range(len(x1)):
-                    for j in range(len(y1)):
+                x1 = [x-1,x, x+1]
+                y1 = [y-1, y, y+1]
+                for i in x1:
+                    for j in y1:
                         new_pos = (i,j,z)
                         if i >= 0 and i < environment.grid_size and j >= 0 and j < environment.grid_size:
-                            print(f"The fire as now expanded to position {new_pos}")
+                            print(f"The fire has now expanded to position {new_pos}")
+                            #smoke
+                            x2 = [i-1,i, i+1]
+                            y2 = [j-1, j, j+1]
+                            for i1 in x2:
+                                for j1 in y2:
+                                    if i1 >= 0 and i1 < environment.grid_size and j1 >= 0 and j1 < environment.grid_size:
+                                        environment.smoke_pos.append((i1,j1,z))
                             if environment.building[z][i][j] == 4:
                                 #occupant dies
                                 for agent_id in environment.occupants_loc.keys():
@@ -116,8 +130,8 @@ async def main():
                                     for agent in occupants:
                                         if agent.jid == agent_id:
                                             agent.stop()
-                        environment.building[z][i][j] = 5 # fire
-                        to_add.append(new_pos)
+                            environment.building[z][i][j] = 5 # fire
+                            to_add.append(new_pos)
         for i in to_add:
             environment.obstacles[i] = 'fire'
         for i in to_pop:
