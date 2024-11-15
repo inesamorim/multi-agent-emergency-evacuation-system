@@ -16,6 +16,27 @@ Occupant Agent:
 
 BMS:
     [] enviar mensagem a cada ocupante com novas informações recebidas sobre portas, incêndio, etc
+    [] close doors
+    [] definition of emergency state of floor
+        se <10%             -> safe
+        se >= 10%           -> danger low
+        se >= 45%           -> danger high
+        se >= 87% em chamas -> give up  (ver se vale a pena dar save pela janela, 
+                                        só o fazer se area >= 81,
+                                        ou occ está "protegido por obstáculos")
+    [] def duable(self, initial_pos, destination)-> give to floors, 
+                                                    retur true se nenhum dos andares pelo meio 
+                                                    estiver a cima de 45%
+    [] initial deploit of ER per floor
+        for all floors lower that give up
+        see nº of occ in floor 
+
+DEC:
+    []para consumir obstáculos/portas demora 6 seg (mudar tempo talvez?)
+    []não consegue atingir escadas(assume q são com sistema à prova de fogo)
+        se houver tempo definir escadas com flag(flamable) se true fogo pode atingir se não não
+    [x]smoke - Inês
+    [x]casual fire propagation - Inês
 
 BMS has information -> ocupante recebe information -> ocupante faz lista de possible moves lista de preferências -> ocupante envia lista de preferências para o ambiente -> ambiente atualiza (ciclo recomeça)
 
@@ -26,7 +47,7 @@ BMS has information -> ocupante recebe information -> ocupante faz lista de poss
 TO DO:
 [] smoke only appears if there's fire - Inês
 [] pôr a funcionar savethroughwindow - Inês - not working
-[] chamar  mais er agents conforme necessário - Dani
+[] chamar  mais er agents conforme necessário - Constança
 [x] floor alocado ao er_agent
 -----
 
@@ -64,25 +85,31 @@ Behaviours:
 
     se durante o salvamente alguém for mandado para outro andar a lista de occ para salvar é 
     automáticamente distribuida por todos os ER desse tipo q estão nesse andar
-    
+
+    [] Get_path(initial_pos, target) -  usado para ir para o floor
+                                        usado para ir ter com occ
+                                        usado para sair do edifício
 
     [] AbortMission(OneShot) -> se toda a gente salva ou se não der para salvar mais(determinada por BMS)
                              
     [] GetCrue -> see how else with get comerads
         destribut per crue -> dar a outros agents uma lista de pessoas para ajudar no piso 
         triagem -> ordenar por importância
+
     [x] GoToBuilding(OneShot) 
+
     [] GetOcc -> cada ER é responsável de apanhar um occ, ver caminho, guarda id
+
     [x?] AbductionOfOcc -> apanha um occupante para o poder levar para segurânca
         deve ser usada ou quando chaga a uma saída ou 
         se occ tiver health == 1 larga-no no sítio mais seguro mais proximo(mandá-lo para o sítio mais prox e livre)
 
-    [] Cure(OneShot) -> if health == 1: occupant is curable (será uma classe dentro da classe ReceiveHealthCheck?????)
     [] SaveThroughWindow(Cyclic) -> if health == 0 and no exits or stairs
 
                                     Talvez altere
                                     nandom ER mantêm-se fora, e é com ele que comunica o ER que quer usar a janela
                                     insideB(type: Bool)
+                                    
     [] PutOutFire(OneShot) -> só no fim porque fumos tóxicos
 
 - Occupants:
