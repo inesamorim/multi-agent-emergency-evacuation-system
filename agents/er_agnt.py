@@ -9,6 +9,7 @@ import spade
 from environment import Environment
 import time
 import numpy as np
+import heapq
 
 
 class ERAgent(Agent):
@@ -222,6 +223,102 @@ class ERAgent(Agent):
 
 
     class ToSaveOrNotToSave(OneShotBehaviour):
+
+        
+        #------------------------------------------------------------------------------------#
+        #------------------------------------BOB-WAS-HERE------------------------------------#
+        #------------------------------------------------------------------------------------#
+
+        def astar_possible_moves(self, x, y):
+            # Include logic for double-step moves as described above
+            # Neighbors for single-step movement
+            single_step = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
+            # Neighbors for double-step movement
+            double_step = [
+                (x+2, y), (x-2, y), (x, y+2), (x, y-2),
+                (x+1, y+1), (x-1, y-1), (x+1, y-1), (x-1, y+1)
+            ]
+            # Combine single and double-step moves
+            all_moves = single_step + double_step
+            # Filter valid moves (e.g., within bounds, not obstacles or fire)
+            valid_moves = [(nx, ny) for nx, ny in all_moves if self.is_valid_move(nx, ny)]
+            return valid_moves
+
+        def is_valid_move(self, x, y):
+            # Include checks for bounds, obstacles, fire, and occupied positions
+            rows, cols = len(self.grid), len(self.grid[0])
+            within_bounds = 0 <= x < rows and 0 <= y < cols
+            not_obstacle = self.grid[x][y] != 1 and self.grid[x][y] != 'F'
+            not_occupied = (x, y) not in self.environment.occupied_positions
+            return within_bounds and not_obstacle and not_occupied
+
+        def find_path(self, target):
+            # A* algorithm with modifications for two-step movement
+            open_set = []
+            position = self.agent.environment.get_er_loc(self.agent.jid)
+            heapq.heappush(open_set, (0, position))  # Priority queue with (cost, position)
+            came_from = {}
+            g_score = {position: 0}
+            f_score = {position: self.heuristic(position, target)}
+
+            while open_set:
+                _, current = heapq.heappop(open_set)
+
+                # Exit reached
+                if current == target:  
+                    #o occ guarda o caminho q quer fazer 
+                    self.path = self.reconstruct_path(came_from, current)
+                    return self.path
+
+
+
+                x, y = current
+                neighbors = self.astar_possible_moves(x, y) #where he can walk to(they are poss moves)
+                for nx, ny in neighbors:
+                    tentative_g_score = g_score[current] + 1
+                    if tentative_g_score < g_score.get((nx, ny), float('inf')):
+                        came_from[(nx, ny)] = current
+                        g_score[(nx, ny)] = tentative_g_score
+                        f_score[(nx, ny)] = tentative_g_score + self.heuristic((nx, ny), target)
+
+                        # Avoid duplicates in the open_set
+                        if (nx, ny) not in f_score:
+                            heapq.heappush(open_set, (f_score[(nx, ny)], (nx, ny)))
+
+            return None  # No path found
+
+
+        def find_next_position(self, target):
+            # Find and reserve the next position
+            path = self.find_path(target)
+            if path and len(path) > 0:
+                next_position = path[0]  # Take the first step in the path
+                if next_position not in self.environment.occupied_positions:
+                    self.environment.occupied_positions.add(next_position)  # Reserve position
+                    return next_position
+            return self.current_position  # Stay in place if no valid move
+            
+
+        def move_to_position(self, new_position):
+            # Move and update occupied positions
+            self.environment.occupied_positions.remove(self.current_position)  # Free current position
+            self.current_position = new_position  # Update position
+            self.environment.occupied_positions.add(new_position)  # Mark new position as occupied
+            
+
+        def act(self, target):
+            """Main method for the ER agent to take an action."""
+            next_position = self.find_next_position(target)
+            self.move_to_position(next_position)
+
+
+        #------------------------------------------------------------------------------------#
+        #------------------------------------BOB-WAS-HERE------------------------------------#
+        #------------------------------------------------------------------------------------#
+
+
+
+
         # se paramed -> chegará beira da pessoa e invocar cura(dependedndo do estado demora x tempo)
         async def stagnation(self):
             """
