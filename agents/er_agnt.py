@@ -230,27 +230,38 @@ class ERAgent(Agent):
         #------------------------------------------------------------------------------------#
 
         def astar_possible_moves(self, x, y):
-            # Include logic for double-step moves as described above
-            # Neighbors for single-step movement
-            single_step = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
-            # Neighbors for double-step movement
-            double_step = [
-                (x+2, y), (x-2, y), (x, y+2), (x, y-2),
-                (x+1, y+1), (x-1, y-1), (x+1, y-1), (x-1, y+1)
-            ]
-            # Combine single and double-step moves
-            all_moves = single_step + double_step
-            # Filter valid moves (e.g., within bounds, not obstacles or fire)
-            valid_moves = [(nx, ny) for nx, ny in all_moves if self.is_valid_move(nx, ny)]
-            return valid_moves
+            _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            grid_z = self.agent.environment.get_grid(z) #no futuro alterar para BMS.get_floor(z) ->return grid
+            
+            ''' 
+                1->portas 
+                2->janelas
+                3->escadas
+                4->pessoas
+                5->obstáculos
+                6->saída
+            '''
 
-        def is_valid_move(self, x, y):
-            # Include checks for bounds, obstacles, fire, and occupied positions
-            rows, cols = len(self.grid), len(self.grid[0])
-            within_bounds = 0 <= x < rows and 0 <= y < cols
-            not_obstacle = self.grid[x][y] != 1 and self.grid[x][y] != 'F'
-            not_occupied = (x, y) not in self.environment.occupied_positions
-            return within_bounds and not_obstacle and not_occupied
+            x1 = [x-2, x-1, x, x+1, x+1]
+            y1 = [y-2, y-1, y, y+1, y+2]
+            possible_moves = []
+            for i in range(5):
+                for j in range(5):
+                    if self.is_possible_move(x1[i],y1[j], grid_z):
+                        possible_moves.append((x1[i], y1[j], self.agent.floor))
+
+            return possible_moves
+
+        def is_valid_move(self, x, y, grid):
+            if x < 0 or y < 0 or x >= len(grid) or y >= len(grid[0]):
+                #fora da grid
+                return False
+            
+            if grid[x][y] != 0 and grid[x][y] != 6 and grid[x][y] != 3: 
+                #obstaculo
+                return False
+                            
+            return True
 
         def find_path(self, target):
             # A* algorithm with modifications for two-step movement
@@ -289,12 +300,18 @@ class ERAgent(Agent):
 
 
         def find_next_position(self, target):
+            _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            grid = self.agent.environment.get_grid(z) #no futuro alterar para BMS.get_floor(z) ->return grid
+
             # Find and reserve the next position
             path = self.find_path(target)
             if path and len(path) > 0:
                 next_position = path[0]  # Take the first step in the path
-                if next_position not in self.environment.occupied_positions:
-                    self.environment.occupied_positions.add(next_position)  # Reserve position
+                #grid[x][y] != 0 and grid[x][y] != 6 and grid[x][y] != 3
+                if grid[next_position[0]][next_position[1]]!=0 and grid[next_position[0]][next_position[1]]!=6 and grid[next_position[0]][next_position[1]]!=3:
+                #if next_position not in self.environment.occupied_positions:
+                    self.agent.environment.update_er_position(next_position[0], next_position[1], z)
+                    #self.environment.occupied_positions.add(next_position)  # Reserve position
                     return next_position
             return self.current_position  # Stay in place if no valid move
             
