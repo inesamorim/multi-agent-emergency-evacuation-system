@@ -152,73 +152,7 @@ class ERAgent(Agent):
 
 
 
-    class CheckForHealthState(CyclicBehaviour):
-        async def run(self):
-            while(not self.agent.busy):
-                await asyncio.sleep(1)
-            await self.ask_health_state()
-            await asyncio.sleep(10)
 
-        async def ask_health_state(self):
-            num_occupants = self.agent.environment.num_occupants
-            for i in range(num_occupants):
-                id = f"occupant{i}@localhost"
-                if str(id) in self.agent.environment.occupants_loc.keys():
-                    print(f"ER Agent {self.agent.jid} ks sending message to {id}")
-                    msg = Message(to=f"occupant{i}@localhost")
-                    msg.set_metadata("performative", "informative")
-                    msg.body = "[ER] Please give me information on your health state"
-
-                    await self.send(msg)
-
-
-    class ReceiveHealthState(CyclicBehaviour):
-        async def run(self):
-            to_help_list = []
-            while True:  # Continuously listen for messages
-                await self.receive_health_state(to_help_list)
-                #[id, healf, x, y, z]
-
-
-        async def receive_health_state(self, to_help_list):
-            '''
-            se occ tiver no pick da health, não pede ajuda, só foge
-            '''
-            msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
-
-            if msg:
-                # Assuming msg.body contains the message text
-                content = msg.body  # or msg.content, depending on the message library
-
-                # Split the message by semicolons to isolate sections
-                parts = content.split(";")
-
-                try:
-                    # Extract `id`
-                    id_part = parts[0].split(":")[1].strip()
-
-                    # Extract `position` (x, y, z) - splitting by `:` and `,`
-                    position_part = parts[1].split(":")[1].strip()
-                    x, y, z = map(int, position_part.strip("()").split(","))
-
-                    # Extract `health state`
-                    health_state_part = parts[2].split(":")[1].strip()
-                    health_state = int(health_state_part)
-
-                    # Create the array with agent data
-                    occ = [id_part, health_state, x, y, z]
-
-                    print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
-                    to_help_list.append(occ)
-
-                    if health_state==1: #agent é curável
-                        cure_behaviour = self.Cure(occ, to_help_list)
-                        self.agent.add_behaviour(cure_behaviour)
-
-                except IndexError as e:
-                    print("Failed to parse message. Make sure the message format is correct:", e)
-                except ValueError as e:
-                    print("Failed to convert data to integers. Check the data format:", e)
 
 
 
@@ -228,9 +162,7 @@ class ERAgent(Agent):
         #------------------------------------------------------------------------------------#
         #------------------------------------BOB-WAS-HERE------------------------------------#
         #------------------------------------------------------------------------------------#
-        ''' 
-        
-        '''
+
         def evaluate_fire(self, x, y, z, max_fire_threshold=9):
             '''
             faz blob do fogo, e retorna o tamanho da blob
@@ -272,10 +204,10 @@ class ERAgent(Agent):
                 for fx, fy in fire_blocks:
                     er_x, er_y, _ = self.agent.environment.get_er_loc(self.agent.jid)  # Assume ER's current position is stored
                     for fx, fy in fire_blocks:
-                        if abs(fx - er_x) + abs(fy - er_y) == 1:  # Manhattan distance = 1
+                        if np.sqrt((fx - er_x)**2 + (fy - er_y)**2) < 2: 
                             # Extinguish all connected fire blocks
-                            for fx, fy in fire_blocks:
-                                self.environment.obstacles[fx][fy] = None  # Clear the fire
+                            for f in fire_blocks:
+                                self.environment.obstacles.pop(str(f))   # Clear the fire
                             print(f"Extinguished {fire_count} fire blocks starting from {x, y}.")
                             break
                     
@@ -636,7 +568,7 @@ class ERAgent(Agent):
 
         def __init__(self):
             super().__init__()
-            self.can_give = {1: [], 2:[]}
+            self.can_give = {1: [], 2:[]} #the ER that can be transfered
 
 
         async def run(self):
@@ -663,6 +595,67 @@ class ERAgent(Agent):
 
             else:
                 print("KarenOfFloor is inactive due to cap being False.")
+
+        '''
+        transportar as cenas de ver occ in floor para aqui
+        as classes anteriores foram tranferidas para o lixo caso alguem qinda as queira usar
+        '''
+
+        async def ask_health_state(self):
+            num_occupants = self.agent.environment.num_occupants
+            for i in range(num_occupants):
+                id = f"occupant{i}@localhost"
+                if str(id) in self.agent.environment.occupants_loc.keys():
+                    print(f"ER Agent {self.agent.jid} ks sending message to {id}")
+                    msg = Message(to=f"occupant{i}@localhost")
+                    msg.set_metadata("performative", "informative")
+                    msg.body = "[ER] Please give me information on your health state"
+
+                    await self.send(msg)
+
+        async def receive_health_state(self, to_help_list):
+            '''
+            se occ tiver no pick da health, não pede ajuda, só foge
+            '''
+            msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
+
+            if msg:
+                # Assuming msg.body contains the message text
+                content = msg.body  # or msg.content, depending on the message library
+
+                # Split the message by semicolons to isolate sections
+                parts = content.split(";")
+
+                try:
+                    # Extract `id`
+                    id_part = parts[0].split(":")[1].strip()
+
+                    # Extract `position` (x, y, z) - splitting by `:` and `,`
+                    position_part = parts[1].split(":")[1].strip()
+                    x, y, z = map(int, position_part.strip("()").split(","))
+
+                    # Extract `health state`
+                    health_state_part = parts[2].split(":")[1].strip()
+                    health_state = int(health_state_part)
+
+                    # Create the array with agent data
+                    occ = [id_part, health_state, x, y, z]
+
+                    print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
+                    to_help_list.append(occ)
+
+                    if health_state==1: #agent é curável
+                        cure_behaviour = self.Cure(occ, to_help_list)
+                        self.agent.add_behaviour(cure_behaviour)
+
+                except IndexError as e:
+                    print("Failed to parse message. Make sure the message format is correct:", e)
+                except ValueError as e:
+                    print("Failed to convert data to integers. Check the data format:", e)
+
+
+
+        #######################______________________________________######################
 
 
         async def get_team(self):
