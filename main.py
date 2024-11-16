@@ -12,7 +12,7 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(num_floors=8, num_occupants=30, num_er=5)
+    environment = Environment(num_floors=3, num_occupants=20, num_er=5)
     #await asyncio.sleep(10)
 
     #start user interface
@@ -103,7 +103,7 @@ async def main():
         for disaster in environment.obstacles.items():
             pos = disaster[0]
             type = disaster[1]
-            print(disaster)
+            #print(disaster)
             if type == 'fire':
                 x = pos[0]
                 y = pos[1]
@@ -114,7 +114,7 @@ async def main():
                     for j in y1:
                         new_pos = (i,j,z)
                         if i >= 0 and i < environment.grid_size and j >= 0 and j < environment.grid_size:
-                            print(f"The fire has now expanded to position {new_pos}")
+                            #print(f"The fire has now expanded to position {new_pos}")
                             #smoke
                             x2 = [i-1,i, i+1]
                             y2 = [j-1, j, j+1]

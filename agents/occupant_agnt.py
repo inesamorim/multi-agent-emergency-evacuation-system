@@ -150,10 +150,18 @@ class OccupantAgent(Agent):
                             self.agent.environment.update_occupant_position(self.agent.jid, *new_pos)
                             self.agent.floor = new_pos[2]
                     else:
-                        print(f"The stairs in floor {pos[2]} are blocked. Occupant {self.agent.jid} is going to the window")
+                        print(f"The stairs in floor {pos[2]-1} are blocked. Occupant {self.agent.jid} is going to the window")
                         new_pos = self.closest_windows()
-                        if new_pos != -1 and self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                            self.agent.environment.update_occupant_position(self.agent.jid, *new_pos, self.agent.__annotations__occupants_loc[str(self.agent.jid)][2])
+                        new_pos = (new_pos[0], new_pos[1], pos[2]-1)
+                        if new_pos != -1 and self.is_possible_move(new_pos[0], new_pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                            if new_pos in windows:
+                                print(f"Occupant {self.agent.jid} threw himself out the window in floor {pos[2]}")
+                                #TODO: check if he is alive
+                                self.agent.environment.occupants_loc.pop(str(self.agent.jid))
+                                self.agent.environemnt.occupants_saved += 1 #assuming he survived
+                                await self.agent.stop()
+                            else:
+                                self.agent.environment.update_occupant_position(self.agent.jid, *new_pos, self.agent.environment.occupants_loc[str(self.agent.jid)][2])
                         #TODO: ask for someone to catch him
 
                 elif pos in windows:
