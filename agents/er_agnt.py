@@ -228,6 +228,60 @@ class ERAgent(Agent):
         #------------------------------------------------------------------------------------#
         #------------------------------------BOB-WAS-HERE------------------------------------#
         #------------------------------------------------------------------------------------#
+        ''' 
+        
+        '''
+        def evaluate_fire(self, x, y, z, max_fire_threshold=9):
+            '''
+            faz blob do fogo, e retorna o tamanho da blob
+            defalt max_fire_threshold=9
+            '''
+            grid = self.agent.environment.get_grid(z)
+
+            #se obstacle != 'fire'
+            if self.agent.environment.obstacles_type[x, y, z] != 'fire':
+                return 20 #no diff between large_fire and normal obstacle
+            
+
+            rows, cols = len(grid), len(grid[0])
+            visited = set()
+            stack = [(x, y)]
+            fire_blocks = []  # Track all fire positions for potential extinguishing
+            fire_count = 0
+
+            # Flood fill logic
+            while stack:
+                cx, cy = stack.pop()
+                if (cx, cy) in visited:
+                    continue
+
+                visited.add((cx, cy))
+
+                if self.environment.obstacles[cx][cy] == 'fire':
+                    fire_count += 1
+                    fire_blocks.append((cx, cy))  # Add position to extinguish list
+
+                    # Explore neighbors
+                    for nx, ny in [(cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1),
+                                   (cx+1, cy+1), (cx+1, cy-1), (cx-1, cy+1), (cx-1, cy-1)]:
+                        if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited:
+                            stack.append((nx, ny))
+
+            # Extinguish fire if the count is within the threshold and ER wannna go that way 
+            if fire_count <= max_fire_threshold:
+                for fx, fy in fire_blocks:
+                    er_x, er_y, _ = self.agent.environment.get_er_loc(self.agent.jid)  # Assume ER's current position is stored
+                    for fx, fy in fire_blocks:
+                        if abs(fx - er_x) + abs(fy - er_y) == 1:  # Manhattan distance = 1
+                            # Extinguish all connected fire blocks
+                            for fx, fy in fire_blocks:
+                                self.environment.obstacles[fx][fy] = None  # Clear the fire
+                            print(f"Extinguished {fire_count} fire blocks starting from {x, y}.")
+                            break
+                    
+
+            return fire_count
+
 
         def astar_possible_moves(self, x, y):
             _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
@@ -247,19 +301,27 @@ class ERAgent(Agent):
             possible_moves = []
             for i in range(5):
                 for j in range(5):
-                    if self.is_possible_move(x1[i],y1[j], grid_z):
+                    if self.is_valid_move(x1[i],y1[j], z, grid_z):
                         possible_moves.append((x1[i], y1[j], self.agent.floor))
 
             return possible_moves
 
-        def is_valid_move(self, x, y, grid):
+        def is_valid_move(self, x, y, z, grid):
             if x < 0 or y < 0 or x >= len(grid) or y >= len(grid[0]):
                 #fora da grid
                 return False
             
+            if grid[x][y] == 5:
+                obstacle = self.evaluate_fire(x, y, z)
+
+                if obstacle <= 9:
+                    # Allowed to move into small fire
+                    return True
+            
             if grid[x][y] != 0 and grid[x][y] != 6 and grid[x][y] != 3: 
                 #obstaculo
                 return False
+
                             
             return True
 
@@ -286,7 +348,16 @@ class ERAgent(Agent):
                 x, y = current
                 neighbors = self.astar_possible_moves(x, y) #where he can walk to(they are poss moves)
                 for nx, ny in neighbors:
-                    tentative_g_score = g_score[current] + 1
+                    obstacle = self.evaluate_fire(x, y)
+
+                    # Calculate movement cost based on the obstacle
+                    move_cost = 1
+                    if obstacle <= 9: #small_fire <= 9 blocks
+                        move_cost += obstacle*2  # Add a penalty for moving into fire (size of fire influences)
+                    else:
+                        continue  # Skip large fire entirely
+
+                    tentative_g_score = g_score[current] + move_cost
                     if tentative_g_score < g_score.get((nx, ny), float('inf')):
                         came_from[(nx, ny)] = current
                         g_score[(nx, ny)] = tentative_g_score
@@ -367,6 +438,9 @@ class ERAgent(Agent):
                 self.occupants.pop(occ_id)#remover do dic
 
 
+        '''
+        provávelmente vão ser eliminadas
+        '''
         # se ff -> o occ já foi visto por um médico(não sofre dano ao longo do tempo)
         async def clear_path(self, vetor):
             '''
