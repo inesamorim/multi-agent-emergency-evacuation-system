@@ -139,6 +139,80 @@ class BMSAgent(Agent):
             await self.send(msg)
             
         
+    class Path_Throu_Building(CyclicBehaviour): #   ?help needed?
 
+        async def poss_path(self, z_inical, z_final, stair_pos):
+            '''
+            def duable(self, initial_pos, destination)-> Boolean
+            se as escadas estiverem bem e não houver fogo numa dist inf a 2
+            '''
+            c = 1 if z_final>z_inical else -1 
+
+            for i in range(z_inical, z_final+1, c):
+                grid = self.agent.environment.get_grid(i)
+                if grid[stair_pos[0]][stair_pos[1]] == 5:#tornou-se fogo
+                    return False
+            return True
+        
+        
+        async def classify_floor(self, floor):
+            ''' 
+            definition of emergency state of floor
+            se <10%             -> safe
+            se >= 10%           -> danger low
+            se >= 45%           -> danger high
+            se >= 87% em chamas -> no go  (ver se vale a pena dar save pela janela, 
+                                            só o fazer se area >= 81,
+                                            ou occ está "protegido por obstáculos")
+            '''
+            grid = self.agent.environment.get_grid(floor)
+            rows, cols = len(grid), len(grid[0])
+            c = count = 0
+            for i in rows:
+                for j in cols:
+                    c += 1
+                    if grid[i][j] == 5:
+                        if self.agent.environment.obstacles[str(i, j)] == 'fire':
+                            count += 1
+
+            if count==c: self.agent.environment.dead_floors.append[floor]
+            return count*100//c
+            
+    '''
+    se o fogo tiver afetado todas as entradas/saídas possíveis
+    ou existirem andares sem acesso direto a saidas(no início antes de ER irem para lá)
+    escolher o melhor nº mínimo de janelas para serem transformadas em exits
+    e quais as melhores janelas
+    '''
+    async def safest_floors(self):
+        bild = []
+        for z in range(self.agent.environmet.get_num_of_floors()):
+            x = self.classify_floor(z)
+            if x<45:
+                bild.append([x, z])
+            #sorted_coordinates = [[coord for coord, dist in sorted(zip(possible_moves, distances), key=lambda x: x[1])]]
+
+        sorted_coords = [[[perct, floor] for perct, floor in sorted(bild, key=lambda x: x[0])]]
+        
+        '''
+        -> nº of doors will depend on
+            nº of floors where classify floor<10
+            nº of occ
+
+        will try to get the furdest windows poss withou totally compromizing the safty of the choise
+
+        chose the window with the smallest dist to stairs
+        '''
+
+        ...
+    
+    async def alternative_exit(self):
+        #exits = self.agent.environmet.get_all_exits_loc()
+        if len(self.agent.environmet.get_all_exits_loc()) == 0:
+            best_floors = self.safest_floors()
+            if len(best_floors) == 0:
+                return None
+            ...
+        ...        
 
 #TODO: Check for disasters

@@ -24,9 +24,9 @@ BMS:
         se >= 87% em chamas -> give up  (ver se vale a pena dar save pela janela, 
                                         só o fazer se area >= 81,
                                         ou occ está "protegido por obstáculos")
-    [] def duable(self, initial_pos, destination)-> give to floors, 
-                                                    retur true se nenhum dos andares pelo meio 
-                                                    estiver a cima de 45%
+        -Dani
+    []def duable(self, initial_pos, destination)-> Boolean
+        -Dani
     [] initial deploit of ER per floor
         for all floors lower that give up
         see nº of occ in floor 
@@ -67,7 +67,6 @@ Behaviours:
     enquanto os níveis forem estes não é necessário pedir ajuda
 
     [x] GoToFloot(OneShot) -> receive instructions from BMS
-    [] CheckForUnabledPeople(cyclic) -> num dado floor
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
                                     o primeiro ER a chegar ao piso vai continuamente receber info
                                     dado por BMS?
@@ -109,7 +108,7 @@ Behaviours:
                                     Talvez altere
                                     nandom ER mantêm-se fora, e é com ele que comunica o ER que quer usar a janela
                                     insideB(type: Bool)
-                                    
+
     [] PutOutFire(OneShot) -> só no fim porque fumos tóxicos
 
 - Occupants:

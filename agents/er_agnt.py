@@ -146,105 +146,128 @@ class ERAgent(Agent):
 
 
 
-    class CheckForHealthState(CyclicBehaviour):
-        async def run(self):
-            while(not self.agent.busy):
-                await asyncio.sleep(1)
-            await self.ask_health_state()
-            await asyncio.sleep(10)
 
-        async def ask_health_state(self):
-            num_occupants = self.agent.environment.num_occupants
-            for i in range(num_occupants):
-                id = f"occupant{i}@localhost"
-                if str(id) in self.agent.environment.occupants_loc.keys():
-                    print(f"ER Agent {self.agent.jid} ks sending message to {id}")
-                    msg = Message(to=f"occupant{i}@localhost")
-                    msg.set_metadata("performative", "informative")
-                    msg.body = "[ER] Please give me information on your health state"
-
-                    await self.send(msg)
-
-
-    class ReceiveHealthState(CyclicBehaviour):
-        async def run(self):
-            to_help_list = []
-            while True:  # Continuously listen for messages
-                await self.receive_health_state(to_help_list)
-                #[id, healf, x, y, z]
-
-
-        async def receive_health_state(self, to_help_list):
-            '''
-            se occ tiver no pick da health, não pede ajuda, só foge
-            '''
-            msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
-
-            if msg:
-                # Assuming msg.body contains the message text
-                content = msg.body  # or msg.content, depending on the message library
-
-                # Split the message by semicolons to isolate sections
-                parts = content.split(";")
-
-                try:
-                    # Extract `id`
-                    id_part = parts[0].split(":")[1].strip()
-
-                    # Extract `position` (x, y, z) - splitting by `:` and `,`
-                    position_part = parts[1].split(":")[1].strip()
-                    x, y, z = map(int, position_part.strip("()").split(","))
-
-                    # Extract `health state`
-                    health_state_part = parts[2].split(":")[1].strip()
-                    health_state = int(health_state_part)
-
-                    # Create the array with agent data
-                    occ = [id_part, health_state, x, y, z]
-
-                    print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
-                    to_help_list.append(occ)
-
-                    if health_state==1: #agent é curável
-                        cure_behaviour = self.Cure(occ, to_help_list)
-                        self.agent.add_behaviour(cure_behaviour)
-
-                except IndexError as e:
-                    print("Failed to parse message. Make sure the message format is correct:", e)
-                except ValueError as e:
-                    print("Failed to convert data to integers. Check the data format:", e)
 
 
 
     class ToSaveOrNotToSave(OneShotBehaviour):
 
+        async def run(self):
+            ''' 
+            após ser dada pelo cap a self.occupant 
+            ir até ao primeiro elemento do dict até dict = {} Empty
+            ER -> curar occ
+            FF -> pegar no occ curado e tirá-lo dali
+                    se há(no piso) saidas
+                        -consegue ir até lá
+                    se há escadas
+                        -consegue ir até lá 
+                        -tem piso com saida?(BMS diz)
+                    else
+                        -criar saida
+                            pode ser feita no piso(há janelas acessiveis e o piso não tem demasiado fogo)
+                            else ver piso mais proximo que possa criar saida(o BMS é informado imediatamente e oprocesso
+                            de tornar a janela em saida começa enquanto o ER se move para lá)
+            '''
+            ...
         
         #------------------------------------------------------------------------------------#
-        #------------------------------------BOB-WAS-HERE------------------------------------#
         #------------------------------------------------------------------------------------#
+        #--------------funções para arranjar o melhor caminho de A para B--------------------#
+
+        def evaluate_fire(self, x, y, z, max_fire_threshold=9):
+            '''
+            faz blob do fogo, e retorna o tamanho da blob
+            defalt max_fire_threshold=9
+            '''
+            grid = self.agent.environment.get_grid(z)
+
+            #se obstacle != 'fire'
+            if self.agent.environment.obstacles_type[x, y, z] != 'fire':
+                return 20 #no diff between large_fire and normal obstacle
+            
+
+            rows, cols = len(grid), len(grid[0])
+            visited = set()
+            stack = [(x, y)]
+            fire_blocks = []  # Track all fire positions for potential extinguishing
+            fire_count = 0
+
+            # Flood fill logic
+            while stack:
+                cx, cy = stack.pop()
+                if (cx, cy) in visited:
+                    continue
+
+                visited.add((cx, cy))
+
+                if self.environment.obstacles[cx][cy] == 'fire':
+                    fire_count += 1
+                    fire_blocks.append((cx, cy))  # Add position to extinguish list
+
+                    # Explore neighbors
+                    for nx, ny in [(cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1),
+                                   (cx+1, cy+1), (cx+1, cy-1), (cx-1, cy+1), (cx-1, cy-1)]:
+                        if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited:
+                            stack.append((nx, ny))
+
+            # Extinguish fire if the count is within the threshold and ER wannna go that way 
+            if fire_count <= max_fire_threshold:
+                for fx, fy in fire_blocks:
+                    er_x, er_y, _ = self.agent.environment.get_er_loc(self.agent.jid)  # Assume ER's current position is stored
+                    for fx, fy in fire_blocks:
+                        if np.sqrt((fx - er_x)**2 + (fy - er_y)**2) < 2: 
+                            # Extinguish all connected fire blocks
+                            for f in fire_blocks:
+                                self.environment.obstacles.pop(str(f))   # Clear the fire
+                            print(f"Extinguished {fire_count} fire blocks starting from {x, y}.")
+                            break
+                    
+
+            return fire_count
+
 
         def astar_possible_moves(self, x, y):
-            # Include logic for double-step moves as described above
-            # Neighbors for single-step movement
-            single_step = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
-            # Neighbors for double-step movement
-            double_step = [
-                (x+2, y), (x-2, y), (x, y+2), (x, y-2),
-                (x+1, y+1), (x-1, y-1), (x+1, y-1), (x-1, y+1)
-            ]
-            # Combine single and double-step moves
-            all_moves = single_step + double_step
-            # Filter valid moves (e.g., within bounds, not obstacles or fire)
-            valid_moves = [(nx, ny) for nx, ny in all_moves if self.is_valid_move(nx, ny)]
-            return valid_moves
+            _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            grid_z = self.agent.environment.get_grid(z) #no futuro alterar para BMS.get_floor(z) ->return grid
+            
+            ''' 
+                1->portas 
+                2->janelas
+                3->escadas
+                4->pessoas
+                5->obstáculos
+                6->saída
+            '''
 
-        def is_valid_move(self, x, y):
-            # Include checks for bounds, obstacles, fire, and occupied positions
-            rows, cols = len(self.grid), len(self.grid[0])
-            within_bounds = 0 <= x < rows and 0 <= y < cols
-            not_obstacle = self.grid[x][y] != 1 and self.grid[x][y] != 'F'
-            not_occupied = (x, y) not in self.environment.occupied_positions
-            return within_bounds and not_obstacle and not_occupied
+            x1 = [x-2, x-1, x, x+1, x+1]
+            y1 = [y-2, y-1, y, y+1, y+2]
+            possible_moves = []
+            for i in range(5):
+                for j in range(5):
+                    if self.is_valid_move(x1[i],y1[j], z, grid_z):
+                        possible_moves.append((x1[i], y1[j], self.agent.floor))
+
+            return possible_moves
+
+        def is_valid_move(self, x, y, z, grid):
+            if x < 0 or y < 0 or x >= len(grid) or y >= len(grid[0]):
+                #fora da grid
+                return False
+            
+            if grid[x][y] == 5:
+                obstacle = self.evaluate_fire(x, y, z)
+
+                if obstacle <= 9:
+                    # Allowed to move into small fire
+                    return True
+            
+            if grid[x][y] != 0 and grid[x][y] != 6 and grid[x][y] != 3: 
+                #obstaculo
+                return False
+
+                            
+            return True
 
         def find_path(self, target):
             # A* algorithm with modifications for two-step movement
@@ -269,7 +292,16 @@ class ERAgent(Agent):
                 x, y = current
                 neighbors = self.astar_possible_moves(x, y) #where he can walk to(they are poss moves)
                 for nx, ny in neighbors:
-                    tentative_g_score = g_score[current] + 1
+                    obstacle = self.evaluate_fire(x, y)
+
+                    # Calculate movement cost based on the obstacle
+                    move_cost = 1
+                    if obstacle <= 9: #small_fire <= 9 blocks
+                        move_cost += obstacle*2  # Add a penalty for moving into fire (size of fire influences)
+                    else:
+                        continue  # Skip large fire entirely
+
+                    tentative_g_score = g_score[current] + move_cost
                     if tentative_g_score < g_score.get((nx, ny), float('inf')):
                         came_from[(nx, ny)] = current
                         g_score[(nx, ny)] = tentative_g_score
@@ -283,12 +315,18 @@ class ERAgent(Agent):
 
 
         def find_next_position(self, target):
+            _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            grid = self.agent.environment.get_grid(z) #no futuro alterar para BMS.get_floor(z) ->return grid
+
             # Find and reserve the next position
             path = self.find_path(target)
             if path and len(path) > 0:
                 next_position = path[0]  # Take the first step in the path
-                if next_position not in self.environment.occupied_positions:
-                    self.environment.occupied_positions.add(next_position)  # Reserve position
+                #grid[x][y] != 0 and grid[x][y] != 6 and grid[x][y] != 3
+                if grid[next_position[0]][next_position[1]]!=0 and grid[next_position[0]][next_position[1]]!=6 and grid[next_position[0]][next_position[1]]!=3:
+                #if next_position not in self.environment.occupied_positions:
+                    self.agent.environment.update_er_position(next_position[0], next_position[1], z)
+                    #self.environment.occupied_positions.add(next_position)  # Reserve position
                     return next_position
             return self.current_position  # Stay in place if no valid move
             
@@ -307,9 +345,24 @@ class ERAgent(Agent):
 
 
         #------------------------------------------------------------------------------------#
-        #------------------------------------BOB-WAS-HERE------------------------------------#
         #------------------------------------------------------------------------------------#
+        #----------------------------funções dos ER em geral---------------------------------#
 
+        async def get_best_exit_rout(self):
+            '''
+            1-º se os andares entre o q está e a saída + proxima estiverem maus ou bons
+            2-º é possível, no andar onde está chegar ás escadas/saida
+            4-º qual é a janela acessível mais prox
+            ask BMS to see if can easly exit building(the floors belloy are in danger)
+            if not a good idea and no exterior stairs, use window
+            '''
+            pass
+
+
+
+        #------------------------------------------------------------------------------------#
+        #------------------------------------------------------------------------------------#
+        #----------------------------funções dos paramédicos---------------------------------#
 
 
 
@@ -327,62 +380,33 @@ class ERAgent(Agent):
                 occ_id = next(iter(self.occupants)) #o 1º id
 
 
-                if occ_id is not None:
-                    if self.occupants[occ_id][0] != -1:
-                        #ainda se pode salvar
+                if occ_id is not None: 
+                    if self.occupants[str(occ_id)][0] != -1: #ainda se pode salvar
+                        
                         timm = [6, 4, 2] #tempo de salvar proporcional ao nível do occ
-                        await asyncio.sleep(self.occupants[occ_id][0])
+                        await asyncio.sleep(timm[self.occupants[str(occ_id)][0]])
 
                         # Set elf_bar of the target agent to infinity
+                        if self.occupants[str(occ_id)][0] == -1:
+                            self.agent.environment.er_occ_status.pop[str(occ_id)] #occ could not be saved
                         occ_id.white_ribons()
                         print(f"Set elf_bar of agent {occ_id} to infinity.")
 
                         #remove form list to_save
+                    else:
+                        #informar o ff que ficou encarege de socorrer a pessoa para a ignorar
+                        self.agent.environment.er_occ_status.pop[str(occ_id)]
+                        
                 else:
                     print(f"Agent with id {occ_id} not found or dead.")
 
                 self.occupants.pop(occ_id)#remover do dic
 
+        #------------------------------------------------------------------------------------#
+        #------------------------------------------------------------------------------------#
+        #------------------------funções dos ff e talvez paramed-----------------------------#
 
-        # se ff -> o occ já foi visto por um médico(não sofre dano ao longo do tempo)
-        async def clear_path(self, vetor):
-            '''
-            se houver um problema de dimenções pequenas eles podem fazer com que ele desapareça
-            tem q ser no msm andar
 
-            a função é chamada quando se encontra fogo no caminho
-
-            recebe o vetor da direção, e vê 7 casas à frente e só apaga o fogo se houver pelo menos
-            um quadrado não em chamas(apaga enguanto passa)
-            '''
-            #vetor = [1, -1] exemplo
-            x, y, z = self.agent.environment.get_er_loc(self.agent.jid)
-            can = 1
-            while [x+can*vetor[0], y+can*vetor[1], z] in self.agent.environment.obstacles[x+can*vetor[0], y+can*vetor[1], z]:
-                can+=1
-            if can!=7:
-                self.make_wave(vetor)
-
-        async def make_wave(self, vector):
-
-            x, y, z = self.agent.environment.get_er_loc(self.agent.jid)
-
-            can = 1
-            while [x+can*vector[0], y+can*vector[1], z] in self.agent.environment.obstacles[x+can*vector[0], y+can*vector[1], z]:
-                can+=1
-                self.agent.environment.obstacles.pop(x+can*vector[0], y+can*vector[1], z)
-
-            pass
-
-        async def get_best_exit_rout(self):
-            '''
-            1-º se os andares entre o q está e a saída + proxima estiverem maus ou bons
-            2-º é possível, no andar onde está chegar ás escadas/saida
-            4-º qual é a janela acessível mais prox
-            ask BMS to see if can easly exit building(the floors belloy are in danger)
-            if not a good idea and no exterior stairs, use window
-            '''
-            pass
 
 
     class SaveThroughWindow(OneShotBehaviour):
@@ -539,7 +563,7 @@ class ERAgent(Agent):
 
         def __init__(self):
             super().__init__()
-            self.can_give = {1: [], 2:[]}
+            self.can_give = {1: [], 2:[]} #the ER that can be transfered
 
 
         async def run(self):
@@ -549,11 +573,8 @@ class ERAgent(Agent):
                 # Perform actions only if cap is True
                 print("KarenOfFloor is active and performing tasks.")
 
-                #continuamente 2 em 2 seg obter pessoas e ER da équipa
-                #só saem da équipa com transfer
                 #CheckForHealthState, ReceiveHealthState
 
-                #team = {id: type}
                 #to_save = (sempre q ff estejam a tratar do paciente/ele morra isto é alterado)
                 '''
                 can_give guarda a quantidade/id  e type de ER q podem ser descartados
@@ -566,6 +587,69 @@ class ERAgent(Agent):
 
             else:
                 print("KarenOfFloor is inactive due to cap being False.")
+
+        '''
+        transportar as cenas de ver occ in floor para aqui
+        as classes anteriores foram tranferidas para o lixo caso alguem qinda as queira usar
+        '''
+
+        async def ask_health_state(self):
+            num_occupants = self.agent.environment.num_occupants
+            for i in range(num_occupants):
+                id = f"occupant{i}@localhost"
+                if str(id) in self.agent.environment.occupants_loc.keys():
+                    print(f"ER Agent {self.agent.jid} ks sending message to {id}")
+                    msg = Message(to=f"occupant{i}@localhost")
+                    msg.set_metadata("performative", "informative")
+                    msg.body = "[ER] Please give me information on your health state"
+
+                    await self.send(msg)
+
+        async def receive_health_state(self, to_help_list):
+            '''
+            se occ tiver no pick da health, não pede ajuda, só foge
+            '''
+            msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
+
+            if msg:
+                # Assuming msg.body contains the message text
+                content = msg.body  # or msg.content, depending on the message library
+
+                # Split the message by semicolons to isolate sections
+                parts = content.split(";")
+
+                try:
+                    # Extract `id`
+                    id_part = parts[0].split(":")[1].strip()
+
+                    # Extract `position` (x, y, z) - splitting by `:` and `,`
+                    position_part = parts[1].split(":")[1].strip()
+                    x, y, z = map(int, position_part.strip("()").split(","))
+
+                    # Extract `health state`
+                    health_state_part = parts[2].split(":")[1].strip()
+                    health_state = int(health_state_part)
+
+                    # Create the array with agent data
+                    occ = [id_part, health_state, x, y, z]
+
+                    print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
+                    to_help_list.append(occ)
+                    #atualizar env
+                    self.agent.environment.er_occ_status[str(occ[0])] = occ[1:]
+
+                    if health_state==1: #agent é curável
+                        cure_behaviour = self.Cure(occ, to_help_list)
+                        self.agent.add_behaviour(cure_behaviour)
+
+                except IndexError as e:
+                    print("Failed to parse message. Make sure the message format is correct:", e)
+                except ValueError as e:
+                    print("Failed to convert data to integers. Check the data format:", e)
+
+
+
+        #######################______________________________________######################
 
 
         async def get_team(self):
