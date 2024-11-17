@@ -67,7 +67,6 @@ Behaviours:
     enquanto os níveis forem estes não é necessário pedir ajuda
 
     [x] GoToFloot(OneShot) -> receive instructions from BMS
-    [] CheckForUnabledPeople(cyclic) -> num dado floor
     [] ReceiveHealthCheck(Cyclic) -> msg from occupants
                                     o primeiro ER a chegar ao piso vai continuamente receber info
                                     dado por BMS?

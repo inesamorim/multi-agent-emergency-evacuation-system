@@ -175,8 +175,44 @@ class BMSAgent(Agent):
                         if self.agent.environment.obstacles[str(i, j)] == 'fire':
                             count += 1
 
+            if count==c: self.agent.environment.dead_floors.append[floor]
             return count*100//c
             
+    '''
+    se o fogo tiver afetado todas as entradas/saídas possíveis
+    ou existirem andares sem acesso direto a saidas(no início antes de ER irem para lá)
+    escolher o melhor nº mínimo de janelas para serem transformadas em exits
+    e quais as melhores janelas
+    '''
+    async def safest_floors(self):
+        bild = []
+        for z in range(self.agent.environmet.get_num_of_floors()):
+            x = self.classify_floor(z)
+            if x<45:
+                bild.append([x, z])
+            #sorted_coordinates = [[coord for coord, dist in sorted(zip(possible_moves, distances), key=lambda x: x[1])]]
+
+        sorted_coords = [[[perct, floor] for perct, floor in sorted(bild, key=lambda x: x[0])]]
         
+        '''
+        -> nº of doors will depend on
+            nº of floors where classify floor<10
+            nº of occ
+
+        will try to get the furdest windows poss withou totally compromizing the safty of the choise
+
+        chose the window with the smallest dist to stairs
+        '''
+
+        ...
+    
+    async def alternative_exit(self):
+        #exits = self.agent.environmet.get_all_exits_loc()
+        if len(self.agent.environmet.get_all_exits_loc()) == 0:
+            best_floors = self.safest_floors()
+            if len(best_floors) == 0:
+                return None
+            ...
+        ...        
 
 #TODO: Check for disasters

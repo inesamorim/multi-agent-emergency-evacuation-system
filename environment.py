@@ -104,6 +104,7 @@ class Environment:
 
         #BMS INFO
         self.bms_agent = "building@localhost"
+        self.dead_floors = []
 
 
         
@@ -116,7 +117,7 @@ class Environment:
         return grid
     
     def get_building(self):
-        return self.building
+        return self.building 
     
     def send_plan_to_bms(self):
         return self.building
