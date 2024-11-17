@@ -158,10 +158,28 @@ class ERAgent(Agent):
 
     class ToSaveOrNotToSave(OneShotBehaviour):
 
+        async def run(self):
+            ''' 
+            após ser dada pelo cap a self.occupant 
+            ir até ao primeiro elemento do dict até dict = {} Empty
+            ER -> curar occ
+            FF -> pegar no occ curado e tirá-lo dali
+                    se há(no piso) saidas
+                        -consegue ir até lá
+                    se há escadas
+                        -consegue ir até lá 
+                        -tem piso com saida?(BMS diz)
+                    else
+                        -criar saida
+                            pode ser feita no piso(há janelas acessiveis e o piso não tem demasiado fogo)
+                            else ver piso mais proximo que possa criar saida(o BMS é informado imediatamente e oprocesso
+                            de tornar a janela em saida começa enquanto o ER se move para lá)
+            '''
+            ...
         
         #------------------------------------------------------------------------------------#
-        #------------------------------------BOB-WAS-HERE------------------------------------#
         #------------------------------------------------------------------------------------#
+        #--------------funções para arranjar o melhor caminho de A para B--------------------#
 
         def evaluate_fire(self, x, y, z, max_fire_threshold=9):
             '''
@@ -333,9 +351,24 @@ class ERAgent(Agent):
 
 
         #------------------------------------------------------------------------------------#
-        #------------------------------------BOB-WAS-HERE------------------------------------#
         #------------------------------------------------------------------------------------#
+        #----------------------------funções dos ER em geral---------------------------------#
 
+        async def get_best_exit_rout(self):
+            '''
+            1-º se os andares entre o q está e a saída + proxima estiverem maus ou bons
+            2-º é possível, no andar onde está chegar ás escadas/saida
+            4-º qual é a janela acessível mais prox
+            ask BMS to see if can easly exit building(the floors belloy are in danger)
+            if not a good idea and no exterior stairs, use window
+            '''
+            pass
+
+
+
+        #------------------------------------------------------------------------------------#
+        #------------------------------------------------------------------------------------#
+        #----------------------------funções dos paramédicos---------------------------------#
 
 
 
@@ -353,65 +386,33 @@ class ERAgent(Agent):
                 occ_id = next(iter(self.occupants)) #o 1º id
 
 
-                if occ_id is not None:
-                    if self.occupants[occ_id][0] != -1:
-                        #ainda se pode salvar
+                if occ_id is not None: 
+                    if self.occupants[str(occ_id)][0] != -1: #ainda se pode salvar
+                        
                         timm = [6, 4, 2] #tempo de salvar proporcional ao nível do occ
-                        await asyncio.sleep(self.occupants[occ_id][0])
+                        await asyncio.sleep(timm[self.occupants[str(occ_id)][0]])
 
                         # Set elf_bar of the target agent to infinity
+                        if self.occupants[str(occ_id)][0] == -1:
+                            self.agent.environment.er_occ_status.pop[str(occ_id)] #occ could not be saved
                         occ_id.white_ribons()
                         print(f"Set elf_bar of agent {occ_id} to infinity.")
 
                         #remove form list to_save
+                    else:
+                        #informar o ff que ficou encarege de socorrer a pessoa para a ignorar
+                        self.agent.environment.er_occ_status.pop[str(occ_id)]
+                        
                 else:
                     print(f"Agent with id {occ_id} not found or dead.")
 
                 self.occupants.pop(occ_id)#remover do dic
 
+        #------------------------------------------------------------------------------------#
+        #------------------------------------------------------------------------------------#
+        #------------------------funções dos ff e talvez paramed-----------------------------#
 
-        '''
-        provávelmente vão ser eliminadas
-        '''
-        # se ff -> o occ já foi visto por um médico(não sofre dano ao longo do tempo)
-        async def clear_path(self, vetor):
-            '''
-            se houver um problema de dimenções pequenas eles podem fazer com que ele desapareça
-            tem q ser no msm andar
 
-            a função é chamada quando se encontra fogo no caminho
-
-            recebe o vetor da direção, e vê 7 casas à frente e só apaga o fogo se houver pelo menos
-            um quadrado não em chamas(apaga enguanto passa)
-            '''
-            #vetor = [1, -1] exemplo
-            x, y, z = self.agent.environment.get_er_loc(self.agent.jid)
-            can = 1
-            while [x+can*vetor[0], y+can*vetor[1], z] in self.agent.environment.obstacles[x+can*vetor[0], y+can*vetor[1], z]:
-                can+=1
-            if can!=7:
-                self.make_wave(vetor)
-
-        async def make_wave(self, vector):
-
-            x, y, z = self.agent.environment.get_er_loc(self.agent.jid)
-
-            can = 1
-            while [x+can*vector[0], y+can*vector[1], z] in self.agent.environment.obstacles[x+can*vector[0], y+can*vector[1], z]:
-                can+=1
-                self.agent.environment.obstacles.pop(x+can*vector[0], y+can*vector[1], z)
-
-            pass
-
-        async def get_best_exit_rout(self):
-            '''
-            1-º se os andares entre o q está e a saída + proxima estiverem maus ou bons
-            2-º é possível, no andar onde está chegar ás escadas/saida
-            4-º qual é a janela acessível mais prox
-            ask BMS to see if can easly exit building(the floors belloy are in danger)
-            if not a good idea and no exterior stairs, use window
-            '''
-            pass
 
 
     class SaveThroughWindow(OneShotBehaviour):
@@ -578,11 +579,8 @@ class ERAgent(Agent):
                 # Perform actions only if cap is True
                 print("KarenOfFloor is active and performing tasks.")
 
-                #continuamente 2 em 2 seg obter pessoas e ER da équipa
-                #só saem da équipa com transfer
                 #CheckForHealthState, ReceiveHealthState
 
-                #team = {id: type}
                 #to_save = (sempre q ff estejam a tratar do paciente/ele morra isto é alterado)
                 '''
                 can_give guarda a quantidade/id  e type de ER q podem ser descartados
@@ -643,6 +641,8 @@ class ERAgent(Agent):
 
                     print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
                     to_help_list.append(occ)
+                    #atualizar env
+                    self.agent.environment.er_occ_status[str(occ[0])] = occ[1:]
 
                     if health_state==1: #agent é curável
                         cure_behaviour = self.Cure(occ, to_help_list)

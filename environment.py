@@ -100,6 +100,7 @@ class Environment:
                 self.er_type[str(id)] = 'firefighter'
             else:
                 self.er_type[str(id)] = 'paramedic'
+        self.er_occ_status = {} #cap insets occ, paramedics remove occ if dead
 
         #BMS INFO
         self.bms_agent = "building@localhost"

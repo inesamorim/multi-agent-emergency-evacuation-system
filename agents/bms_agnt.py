@@ -139,6 +139,44 @@ class BMSAgent(Agent):
             await self.send(msg)
             
         
+    class Path_Throu_Building(CyclicBehaviour): #   ?help needed?
 
+        async def poss_path(self, z_inical, z_final, stair_pos):
+            '''
+            def duable(self, initial_pos, destination)-> Boolean
+            se as escadas estiverem bem e não houver fogo numa dist inf a 2
+            '''
+            c = 1 if z_final>z_inical else -1 
+
+            for i in range(z_inical, z_final+1, c):
+                grid = self.agent.environment.get_grid(i)
+                if grid[stair_pos[0]][stair_pos[1]] == 5:#tornou-se fogo
+                    return False
+            return True
+        
+        
+        async def classify_floor(self, floor):
+            ''' 
+            definition of emergency state of floor
+            se <10%             -> safe
+            se >= 10%           -> danger low
+            se >= 45%           -> danger high
+            se >= 87% em chamas -> no go  (ver se vale a pena dar save pela janela, 
+                                            só o fazer se area >= 81,
+                                            ou occ está "protegido por obstáculos")
+            '''
+            grid = self.agent.environment.get_grid(floor)
+            rows, cols = len(grid), len(grid[0])
+            c = count = 0
+            for i in rows:
+                for j in cols:
+                    c += 1
+                    if grid[i][j] == 5:
+                        if self.agent.environment.obstacles[str(i, j)] == 'fire':
+                            count += 1
+
+            return count*100//c
+            
+        
 
 #TODO: Check for disasters
