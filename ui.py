@@ -85,7 +85,7 @@ class BuildingInterface:
         elapsed_time = datetime.now() - self.env.start_time
         self.time_label.config(text=f"Time Passed: {elapsed_time}")
 
-        self.saved_label.config(text=f"Occupants Saved; {self.env.occupants_saved}")
+        self.saved_label.config(text=f"Occupants Saved: {self.env.occupants_saved}")
         self.dead_label.config(text=f"Occupants Dead: {self.env.occupants_dead}")
         to_save =  self.env.num_occupants - self.env.occupants_dead - self.env.occupants_saved
         self.occupants_label.config(text=f"Occupants to Evacuate: {to_save}")

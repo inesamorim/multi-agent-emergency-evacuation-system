@@ -12,7 +12,7 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(num_floors=3, num_occupants=20, num_er=5)
+    environment = Environment(num_floors=8, num_occupants=50, num_er=5)
     #await asyncio.sleep(10)
 
     #start user interface

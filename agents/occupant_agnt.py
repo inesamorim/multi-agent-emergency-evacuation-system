@@ -84,8 +84,9 @@ class OccupantAgent(Agent):
         async def run(self):
             x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)
             #se estiver num local com fumo ativar lower_life_spam
-            if self.agent.environment.obstacles[self.agent.environment.get_occupant_loc(self.agent.jid)] == 'smoke':
-                self.lower_life_spam
+            if (x,y,z) in self.agent.environment.smoke_pos:
+                await self.lower_life_spam()
+            await asyncio.sleep(5)
             
         async def lower_life_spam(self):
             if self.elf_bar == 0:
@@ -139,7 +140,7 @@ class OccupantAgent(Agent):
                         print(f"Occupant {self.agent.jid} left the building safely")
                         await self.agent.stop()
                 
-                elif pos in stairs:
+                elif pos in stairs and pos[2]-1 != -1:
                     if self.leavefloor(pos[2]-1, pos=pos) != []:
                         #change floor
                         grid = self.agent.environment.get_grid(pos[2]-1)
@@ -163,6 +164,21 @@ class OccupantAgent(Agent):
                             else:
                                 self.agent.environment.update_occupant_position(self.agent.jid, *new_pos, self.agent.environment.occupants_loc[str(self.agent.jid)][2])
                         #TODO: ask for someone to catch him
+                
+                elif pos in stairs and pos[2]-1 == -1:
+                    new_pos = 0
+                    x = pos[0]
+                    y = pos[1]
+                    x1 = [x-1,x,x+1]
+                    y1 = [y-1,y,y+1]
+                    for i in x1:
+                        for j in y1:
+                            if (i != x or j != y):
+                                new_pos = (i,j)
+                                if new_pos != -1 and self.is_possible_move(new_pos[0], new_pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                                    print(f"Occupant {self.agent.jid} is moving to new position {pos}")
+                                    self.agent.environment.update_occupant_position(self.agent.jid, *pos)
+
 
                 elif pos in windows:
                     print(f"Occupant {self.agent.jid} threw himself out the window in floor {pos[2]}")
@@ -326,7 +342,7 @@ class OccupantAgent(Agent):
         #------------------------------------BOB-WAS-HERE------------------------------------#
 
 
-        def astar_possible_moves(self, x, y):
+        def astar_possible_moves(self,x,y):
             _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
             grid_z = self.agent.environment.get_grid(z) #no futuro alterar para BMS.get_floor(z) ->return grid
             
@@ -473,6 +489,8 @@ class OccupantAgent(Agent):
         
         def prefered_moves(self):
             possible_moves = self.possible_moves() #todos os movimentos possíveis
+            #x,y,_ = self.agent.environment.get_occupant_loc(self.agent.jid)
+            possible_moves = self.astar_possible_moves(x,y)
             distances = [0 for i in range(len(possible_moves))] 
 
             #ver dist de cada poss à saida mais proxima e adequar priority list dessa forma
@@ -488,7 +506,9 @@ class OccupantAgent(Agent):
         #quando no quadrado 4(escadas) muda de andar
         def leavefloor(self,  chosen_z, pos): #cima baixo  0 desce 1 sobe cb: bool=False,
             x, y, z = pos[0], pos[1], pos[2]
-            self.floor = self.agent.environment.get_grid(chosen_z)
+            floor = self.agent.environment.get_grid(chosen_z)
+            #print(floor)
+            
             #sself.agent.environment.update_occupant_position(self.agent.jid, x, y, chosen_z)#desce as escadas fora do tempo
             x1 = [x-1, x, x+1]
             y1 = [y-1, y, y+1]
@@ -498,7 +518,7 @@ class OccupantAgent(Agent):
                 for j in range(3):
                     if (x==x1[i] and y==y1[j]):
                         pass
-                    elif self.is_possible_move(x1[i],y1[j], self.floor):
+                    elif self.is_possible_move(x1[i],y1[j], floor):
                         possible_moves.append((x1[i], y1[j], chosen_z))
 
             #retorna locais onde possa ficar 

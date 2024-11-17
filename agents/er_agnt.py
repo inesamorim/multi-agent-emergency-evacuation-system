@@ -70,26 +70,42 @@ class ERAgent(Agent):
                 self.distribution(agents_per_floor, resto)
 
         def distribution(self, agents_per_floor, resto):
-            z = 0
             if agents_per_floor == 0:
+                #the number of er agents is lower than the number of floors
+                #one er agent per floor, until there is no one left to distribute
                 for i in range(self.agent.environment.num_er):
                     floor = i
                     er_id = f"eragent{i}@localhost"
+                    self.agent.floor_alocated = floor
+                    
+                    self.agent.environment.update_er_role(er_id, True)
+                    print(f"ER agent {er_id} is assigned captain of floor {z}")
+
+                    pos = self.possible_pos(floor)
+                    print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                    self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                return 1
+
+            z = 0
             for i in range(0,self.agent.environment.num_er,agents_per_floor):
-                z1 = 0
+                #the number of er agents is higher than the number of floors
+                #agent_per_floor é a divisão inteira entre os agents e o numero de floors
+                #o que sobra vai para o andar 0
                 if z >= self.agent.environment.num_floors:
+                    #distribuir os que sobram
+                    z1 = 0
                     for j in range(i, i+resto):
                         er_id = f"eragent{j}@localhost"
                         floor = z1
                         self.agent.floor_alocated = floor
                         pos = self.possible_pos(floor)
+                        while pos == 0:
+                            pos = self.possible_pos(floor+1)
                         print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
                         self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
                     z1 += 1
                     break
-                #print(f"i: {i}")
                 for j in range(i, i+agents_per_floor):
-                    #print(f"j: {j}")
                     er_id = f"eragent{j}@localhost"
                     if i == j:
                         self.agent.environment.update_er_role(er_id, True)
@@ -98,34 +114,12 @@ class ERAgent(Agent):
                     floor = z
                     self.agent.floor_alocated = floor
                     pos = self.possible_pos(floor)
+                    while pos == 0:
+                        pos = self.possible_pos(floor+1)
+                    print(pos)
                     print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
                     self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
-
-            else:
-                for i in range(0,self.agent.environment.num_er,agents_per_floor):
-                    z1 = 0
-                    if z >= self.agent.environment.num_floors:
-                        for j in range(i, i+resto):
-                            er_id = f"eragent{j}@localhost"
-                            floor = z1
-                            pos = self.possible_pos(floor)
-                            print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
-                            self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
-                        z1 += 1
-                        break
-                    #print(f"i: {i}")
-                    for j in range(i, i+agents_per_floor):
-                        #print(f"j: {j}")
-                        er_id = f"eragent{j}@localhost"
-                        if i == j:
-                            self.agent.environment.update_er_role(er_id, True)
-                            #print(self.agent.environment.er_role[str(er_id)])
-                            print(f"ER agent {er_id} is assigned captain of floor {z}")
-                        floor = z
-                        pos = self.possible_pos(floor)
-                        print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
-                        self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
-                    z += 1
+                z += 1
 
         def distribute_by_floor(self):
             #TODO: se as escadas no andar 'x' estão impedidas por um obstáculo, então os er agents podem apenas ser distribuidos pelos andares anteriores?
