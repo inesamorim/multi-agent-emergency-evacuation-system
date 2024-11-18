@@ -21,6 +21,7 @@ class Environment:
         self.occupants_saved = 0
         self.occupants_dead = 0
 
+
         #DOORS INFO
         self.doors_locations = [(0,4,0),(9,7,0)]
         for x, y, z in self.doors_locations:
@@ -39,9 +40,11 @@ class Environment:
             self.windows_state[str(window)] = 'open'
 
         #STAIRS INFO
+        #escada no meio
+        pos = grid_size // 2
         self.stairs_locations = []
         for i in range(self.num_floors):
-            self.stairs_locations.append((5,5,i))
+            self.stairs_locations.append((pos,pos,i))
         for x, y, z in self.stairs_locations:
            self.building[z][x][y] = 3
 
@@ -95,7 +98,7 @@ class Environment:
         for i in range(self.num_er):
             id = f"eragent{i}@localhost"
             self.er_loc[str(id)] = (-1,-1,-1)
-            self.er_role[str(id)] = False
+            self.er_role[str(id)] = False #not captain
             if i%2 == 0:
                 self.er_type[str(id)] = 'firefighter'
             else:
@@ -206,6 +209,7 @@ class Environment:
     def get_occupant_loc(self, occupant_id):
         x, y, z = self.occupants_loc[str(occupant_id)]
         return x,y,z
+
     
     def get_all_occupants_state(self):
         return self.occupants_health

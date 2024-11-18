@@ -19,20 +19,21 @@ class ERAgent(Agent):
         self.type = type
         ###### BOB WAS HERE ######
         self.helping = False #se está a transportar alguém
-        self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]}
+        self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]} - tarefas
         self.busy = True
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
         #self.occupant_info = None
         self.floor_alocated = -1
+        self.to_help_list = []
 
 
-    async def add_patient(self, patient_inf):
+    def add_patient(self, patient_inf):
         ''' to add to list of attendence'''
         #patient_inf -> [id, type, x, y, z]
         if not(patient_inf[0] in self.occupants):
             self.occupants[patient_inf[0]] = patient_inf[1:]
 
-    async def modify_other_agent_occ(self, other_agent_id, patient_inf):
+    def modify_other_agent_occ(self, other_agent_id, patient_inf):
         """
         Modify another agent's self.occupants if the agent exists.
         Adds the occ info to the list for the specified `occ_id`.
@@ -76,12 +77,15 @@ class ERAgent(Agent):
                 for i in range(self.agent.environment.num_er):
                     floor = i
                     er_id = f"eragent{i}@localhost"
-                    self.agent.floor_alocated = floor
+                    #self.agent.floor_alocated = floor
                     
                     self.agent.environment.update_er_role(er_id, True)
-                    print(f"ER agent {er_id} is assigned captain of floor {z}")
+                    print(f"ER agent {er_id} is assigned captain of floor {floor}")
 
                     pos = self.possible_pos(floor)
+                    while pos == 0:
+                        pos = self.possible_pos(floor+1)
+
                     print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
                     self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
                 return 1
@@ -116,7 +120,7 @@ class ERAgent(Agent):
                     pos = self.possible_pos(floor)
                     while pos == 0:
                         pos = self.possible_pos(floor+1)
-                    print(pos)
+                    #print(pos)
                     print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
                     self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
                 z += 1
@@ -146,12 +150,7 @@ class ERAgent(Agent):
 
 
 
-
-
-
-
-    class ToSaveOrNotToSave(OneShotBehaviour):
-
+    class ToSaveOrNotToSave(CyclicBehaviour):
         async def run(self):
             ''' 
             após ser dada pelo cap a self.occupant 
@@ -169,7 +168,40 @@ class ERAgent(Agent):
                             else ver piso mais proximo que possa criar saida(o BMS é informado imediatamente e oprocesso
                             de tornar a janela em saida começa enquanto o ER se move para lá)
             '''
-            ...
+            print(f"ER agent {self.agent.jid} is starting jobs...\n {self.agent.occupants}")
+            while(self.agent.occupants != {}):
+                #help person
+                tarefa = self.agent.occupants.items()[0]
+                target = self.agent.occupants[tarefa][1], self.agent.occupants[tarefa][2]
+                print(f"Paramedic {self.agent.jid} is on his way to occupant {tarefa}")
+                new_pos = self.find_next_position(target=target)
+                if new_pos:
+                    self.move_to_position(new_position=new_pos)
+                    print(f"Paramedic {self.agent.jid} is moving to new position {new_pos}")
+            await asyncio.sleep(5)
+
+            """if self.agent.environment.er_type[str(self.agent.jid)] == 'paramedic':
+                #might receive instructions from its captain
+                msg = await self.receive(timeout=10)
+                #respond with 'im busy' or 'im not busy'
+                if msg and 'busy' in msg.body:
+                    print(msg.body)
+                    captain = msg.sender
+                    response = Message(to=captain)
+                    if self.agent.busy:
+                        response.body = 'Busy: Yes'
+                    else:
+                        response.body = 'Busy: No'
+                        #go to person
+                        occ_id = msg.split(':')[1].strip()
+                        print(f"Paramedic {self.agent.jid} is in is way to help occupant {occ_id}")
+                        occ_pos = self.agent.environment.occupants_loc(str(occ_id))
+                        new_pos = self.find_next_position((occ_pos[0],occ_pos[1]))
+                        if new_pos:
+                            self.move_to_position(new_pos)
+                        #TODO: check if paramedic needs help from firefighter
+                    response.set_metadata('performative', 'informative')
+                    await self.send(response)"""
         
         #------------------------------------------------------------------------------------#
         #------------------------------------------------------------------------------------#
@@ -337,6 +369,7 @@ class ERAgent(Agent):
             self.current_position = new_position  # Update position
             self.environment.occupied_positions.add(new_position)  # Mark new position as occupied
             
+            self.agent.environment.update_er_position(self.agent.jid, *new_position)
 
         def act(self, target):
             """Main method for the ER agent to take an action."""
@@ -545,7 +578,7 @@ class ERAgent(Agent):
 
 
 
-    #to create a cap, to remove a cap, to comunicate t cap, to order non cap
+    #creates captains and their functions
 
     class KarenOfFloor(CyclicBehaviour):
         '''
@@ -569,11 +602,53 @@ class ERAgent(Agent):
         async def run(self):
 
             # Check if self.cap from the outer ER class is True
-            if self.er_role(self.agent.jid):
+            if self.agent.environment.er_role[str(self.agent.jid)]:
                 # Perform actions only if cap is True
+                print("============================================")
                 print("KarenOfFloor is active and performing tasks.")
 
                 #CheckForHealthState, ReceiveHealthState
+                await self.ask_health_state()
+                #await asyncio.sleep(2)
+                await self.receive_health_state(self.agent.to_help_list)
+
+                #distribuir tarefas
+                team = self.get_team()
+                self.its_hero_time(team, self.agent.to_help_list)
+
+                #TODO: receber novos er agents se necesáro
+
+
+                """if self.agent.to_help_list != []:
+                    for occupant in self.agent.to_help_list:
+                        occ_id = occupant[0]
+                        occ_pos = (occupant[2], occupant[3], occupant[4])
+                        occ_helth_state = occupant[1]
+                        print(f"Captain {self.agent.jid} is trying to find someone to help {occ_id} in position {occ_pos}")
+                        #find er agents availble
+                        team = self.get_team()
+                        paramedics = []
+                        for agent in team:
+                            id = agent[0]
+                            type = agent[1]
+                            if type == 'paramedic':
+                                print(f"Paramedic {id} is in floor {self.agent.floor_alocated}")
+                                paramedics.append(id)
+                        
+                        #TODO:if there is fire in the way, we neeed a firefighter too
+                        #send message to paramedics
+                        for id in paramedics:
+                            await self.message_to_paramedic(id,occ_id)
+                            #check if paramedic is busy through a response message
+                            response = await self.receive(timeout=10)
+                            if response.sender == str(id):
+                                is_busy = response.split(':')[1].strip()
+                                print(is_busy)
+                                if is_busy == 'No':
+                                    break
+                        #cure person
+                        #if needed, take person and leave with her
+                        #if not, make yourseelf available again"""
 
                 #to_save = (sempre q ff estejam a tratar do paciente/ele morra isto é alterado)
                 '''
@@ -586,24 +661,40 @@ class ERAgent(Agent):
 
 
             else:
+                print("=================================================")
                 print("KarenOfFloor is inactive due to cap being False.")
+            
+            await asyncio.sleep(10)
 
         '''
         transportar as cenas de ver occ in floor para aqui
         as classes anteriores foram tranferidas para o lixo caso alguem qinda as queira usar
         '''
 
+        async def message_to_paramedic(self,id, occ_id):
+            print(f"Asking for paramedic {id} for help")
+            msg = Message(to=id)
+            msg.set_metadata("performative", "informative")
+            msg.body = f"[ER captain] Can you help: {occ_id}"
+
+            await self.send(msg)
+
+
         async def ask_health_state(self):
             num_occupants = self.agent.environment.num_occupants
+            #captain asks for health state of the occupants in the same floor as him
+            z_cap = self.agent.environment.er_loc[str(self.agent.jid)][2]
             for i in range(num_occupants):
                 id = f"occupant{i}@localhost"
                 if str(id) in self.agent.environment.occupants_loc.keys():
-                    print(f"ER Agent {self.agent.jid} ks sending message to {id}")
-                    msg = Message(to=f"occupant{i}@localhost")
-                    msg.set_metadata("performative", "informative")
-                    msg.body = "[ER] Please give me information on your health state"
+                    z_occ = self.agent.environment.occupants_loc[str(id)][2]
+                    if z_cap == z_occ:
+                        print(f"Captain {self.agent.jid} is sending message to {id}")
+                        msg = Message(to=f"occupant{i}@localhost")
+                        msg.set_metadata("performative", "informative")
+                        msg.body = "[ER] Please give me information on your health state"
 
-                    await self.send(msg)
+                        await self.send(msg)
 
         async def receive_health_state(self, to_help_list):
             '''
@@ -612,8 +703,9 @@ class ERAgent(Agent):
             msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
 
             if msg:
+                print(f"Captain {self.agent.jid} received health check from {msg.sender}")
                 # Assuming msg.body contains the message text
-                content = msg.body  # or msg.content, depending on the message library
+                content = msg.body 
 
                 # Split the message by semicolons to isolate sections
                 parts = content.split(";")
@@ -634,30 +726,41 @@ class ERAgent(Agent):
                     occ = [id_part, health_state, x, y, z]
 
                     print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
-                    to_help_list.append(occ)
+                    if occ[1] < 1:
+                        #0: can't move
+                        to_help_list.append(occ)
                     #atualizar env
                     self.agent.environment.er_occ_status[str(occ[0])] = occ[1:]
 
-                    if health_state==1: #agent é curável
+                    """if health_state==1: #agent é curável
                         cure_behaviour = self.Cure(occ, to_help_list)
-                        self.agent.add_behaviour(cure_behaviour)
+                        self.agent.add_behaviour(cure_behaviour)"""
 
                 except IndexError as e:
                     print("Failed to parse message. Make sure the message format is correct:", e)
                 except ValueError as e:
                     print("Failed to convert data to integers. Check the data format:", e)
 
+            else:
+                print(f"ER Agent {self.agent.jid} did not receive any messages")
+
 
 
         #######################______________________________________######################
 
 
-        async def get_team(self):
+        def get_team(self):
+            """the team of a certain captain are all the er agents alocated to the same floor as himself
+            the captain makes the decisions and the distribution of tasks"""
             team = []
             _, _, z = self.agent.environment.get_er_loc(self.agent.jid)
-            for agent in self.agent.environment.get_all_er_types():
-                if agent.floor_alocated == z:
-                    team.append(agent.id, agent.type)
+            dic = self.agent.environment.get_all_er_types()
+            for agent in dic.keys():
+                # dic -> id: type
+                type = dic[str(agent)]
+                er_pos = self.agent.environment.get_er_loc(agent)
+                if er_pos[2] == z:
+                    team.append((agent, type))
 
             return team
 
@@ -726,17 +829,17 @@ class ERAgent(Agent):
                     return -1
             return 1 #não conseguiu, ainda necessita de ajuda
 
-        async def get_n_of(self, team, len_to_save):
+        def get_n_of(self, team, len_to_save):
             '''
-            ver quantos menmbros da eq são paramed e quantos são ff
+            ver quantos menmbros da team são paramed e quantos são ff
 
             se valores diff dos esperados gardar as alterações
             '''
-            n_paramed = []
-            n_ff = []
-            for id in team:
-                if team[id] == 2: n_paramed+=1
-                if team[id] == 1: n_ff+=1
+            n_paramed = 0.001
+            n_ff = 0.001
+            for agent in team:
+                if agent[1] == 2: n_paramed+=1
+                if agent[1] == 1: n_ff+=1
 
             '''
                         neste caso, pedir por ajuda
@@ -749,10 +852,12 @@ class ERAgent(Agent):
 
 
             '''
+            p_in_need = 0
+            ff_in_need = 0
 
             #paramed
             if len_to_save/n_paramed<=3.5:
-                for id, type_ in team.items():
+                for id, type_ in team:
                     if type_ == 1:
                         self.can_give[1].append(id)
                         #self.can_give.append([id, type_])
@@ -760,8 +865,7 @@ class ERAgent(Agent):
                             break
 
             elif len_to_save/n_paramed>=7.5:
-                p_in_need = 0
-                for id, type_ in team.items():
+                for id, type_ in team:
                     if type_ == 1:
                         p_in_need+=1
                         if len_to_save / n_paramed < 7.5:
@@ -769,7 +873,7 @@ class ERAgent(Agent):
 
             #ff
             if len_to_save/n_ff<=1.5:
-                for id, type_ in team.items():
+                for id, type_ in team:
                     if type_ == 2:
                         self.can_give[2].append(id)
                         if len_to_save / n_ff > 1.5:
@@ -777,8 +881,7 @@ class ERAgent(Agent):
 
             elif len_to_save/n_paramed>=5.5:
                 #in need
-                ff_in_need = 0
-                for id, type_ in team.items():
+                for id, type_ in team:
                     if type_ == 1:
                         ff_in_need+=1
                         if len_to_save / n_paramed < 5.5:
@@ -791,7 +894,7 @@ class ERAgent(Agent):
 
             return n_paramed, n_ff
 
-        async def its_hero_time(self, team, to_save):
+        def its_hero_time(self, team, to_save):
             '''
             usando a lista de pessoas  e os ER do andar
             (chamada sempre q é notado alterações de nº de ER ou DEC causa mt estrago)
@@ -806,15 +909,15 @@ class ERAgent(Agent):
             n_paramd, n_ff = self.get_n_of(team, len(to_save))
             n_p = n_paramd
             n_f = n_ff
-            for id in team:
-                if team[id] == 2:
+            for agent in team:
+                if agent[1] == 2:
                     n_p -= 1
                     for i in range(n_p, len(to_save), n_paramd):
                         self.modify_other_agent_occ(id, to_save[i])
 
 
                 #se so(ainda por criar) deixar de ser membro da team trocal elif para else
-                elif team[id] == 1:
+                elif agent[1] == 1:
                     n_f -= 1
                     for i in range(n_f, len(to_save), n_ff):
                         self.modify_other_agent_occ(id, to_save[i])
