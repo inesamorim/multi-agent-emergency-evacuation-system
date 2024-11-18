@@ -242,13 +242,15 @@ class BMSAgent(Agent):
             '''
             #assume q nunca se vai chamar mais ER do q o necessário
             n_windows = (self.agent.environment.get_all_er_locs()%15)+1
-            f_count = self.occ_non_destruct()
+            f_count = self.occ_non_destruct() #[z, ratio]
             
             sorted_coords = [occ_f for occ_f in sorted(f_count, key = lambda x: x[1])]
 
-            while n_windows>0:
-                
-                ...
+            while n_windows<0:
+                if len(self.agent.environment.get_windows_loc(sorted_coords[0][0]))>0:
+                    #dizer aos ER para abrirem janela de floor
+                    n_windows -= 1
+                    sorted_coords=sorted_coords[1:] #remover o 1º elemento da lista
             ...
             
         '''
@@ -257,6 +259,22 @@ class BMSAgent(Agent):
         escolher o melhor nº mínimo de janelas para serem transformadas em exits
         e quais as melhores janelas
         '''
+
+        async def call_ER(self):
+            occs = self.agent.environmet.get_all_occupants_state()
+            prmd = ff = 0
+            
+            for _, type in occs:
+                if type <2 and type>-1:
+                    prmd += 1
+                ff+=1
+
+            prmd = prmd%6 - int(0.2*prmd%6) +1
+            ff = ff%5 - int(0.2*ff%5) +1
+            nER = prmd+ff%5 + 5 if prmd+ff%5!=0 else prmd+ff%5
+            nER = np.max(nER, self.agent.environmet.get_num_of_floors()*5)
+
+            return int(nER*0.3), int(nER*0.7)+1
     
         async def alternative_exit(self):
             #exits = self.agent.environmet.get_all_exits_loc()
@@ -265,6 +283,56 @@ class BMSAgent(Agent):
                 if len(best_floors) == 0:
                     return None
                 ...
-            ...        
+            ...
+
+        def alocate_responders(self):
+            occ_destruct = self.occ_non_destruct() 
+            er = self.agent.environment.get_er_type_count() #{1: [id], 2: [id]}
+            num_type1_responders = len(er["1"])  #that are yet to be alocated
+            num_type2_responders = len(er["2"]) 
+
+            # Step 1: Minimum allocation: 1 of each type per occupied floor
+            c = 0
+
+            for floor, _ in enumerate(occ_destruct):
+                if num_type1_responders>0 and num_type2_responders>0:
+                    er["1"][c].floor_alocated(floor) #retirar id in pos c
+                    er["2"][c].floor_alocated(floor)
+                    c+=1
+                    num_type1_responders -=1
+                    num_type2_responders -=1
+
+            # Step 2: Proportional allocation of remaining responders
+
+            sum_occ_destruct = sum(occ_destruct)
+            c1 = c2 = c
+            if sum_occ_destruct!=0:
+                for floor, occ in enumerate(occ_destruct):
+                    for i in range(int((occ / sum_occ_destruct) * num_type1_responders)):
+                        er["1"][c1].floor_alocated(floor)
+                        c1+=1
+                        
+                    for i in range(int((occ / sum_occ_destruct) * num_type2_responders)):
+                        er["1"][c2].floor_alocated(floor)
+                        c2+=1
+                        
+
+            num_type1_responders -= c1-c
+            num_type2_responders -= c2-c
+
+            # Step 3: Round and adjust to match remaining responders
+
+            while num_type1_responders>0 or num_type2_responders>0:
+                for floor in range(self.agent.environment.get_num_of_floors()):
+                    if num_type1_responders>0:
+                        er["1"][c1].floor_alocated(floor)
+                        c1+=1
+                        num_type1_responders -= 1
+                    if num_type2_responders>0:
+                        er["1"][c2].floor_alocated(floor)
+                        c2+=1
+                        num_type2_responders -= 1
+            return 
+            
 
 #TODO: Check for disasters
