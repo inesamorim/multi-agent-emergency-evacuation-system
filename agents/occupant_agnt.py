@@ -59,8 +59,8 @@ class OccupantAgent(Agent):
                 er_id = holding_out_for_a_hero.sender
                 await self.send_info_to_er(er_id)
                         
-            else: 
-                print(f"Occupant {self.agent.jid} did not receive any messages or is dead :(")
+            #else: 
+                #print(f"Occupant {self.agent.jid} did not receive any messages or is dead :(")
             
         async def send_info_to_er(self, er_id):
             if str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
@@ -129,8 +129,6 @@ class OccupantAgent(Agent):
             msg.body = f"Occupant: {self.agent.jid}; Preferred Moves: {hierarchy}"
 
             await self.send(msg)
-            
-            #print(f"Preferences of occupant {self.agent.jid}: {hierarchy}")
 
             response = await self.receive(timeout=10) 
 
@@ -169,19 +167,14 @@ class OccupantAgent(Agent):
                                 self.agent.environment.update_occupant_position(self.agent.jid, *new_pos)
                                 self.agent.floor = new_pos[2]
                         else:
-                            print(f"The stairs in floor {pos[2]-1} are blocked. Occupant {self.agent.jid} is going to the window")
-                            new_pos = self.closest_windows()
-                            print(f"new_pos: {new_pos}")
-                            if new_pos != -1  and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                                if (new_pos[0],new_pos[1],pos[2]) in windows:
-                                    print(f"Occupant {self.agent.jid} threw himself out the window in floor {pos[2]}")
-                                    #TODO: check if he is alive
-                                    self.agent.environment.leave_building(self.agent.jid)
-                                    await self.agent.stop()
-                                else:
-                                    print(f"Occupant {self.agent.jid} is moving to new position {new_pos}")
-                                    self.agent.environment.update_occupant_position(self.agent.jid, *new_pos, self.agent.environment.occupants_loc[str(self.agent.jid)][2])
-                            #TODO: ask for someone to catch him
+                            print(f"The stairs in floor {pos[2]-1} are blocked. Occupant {self.agent.jid} waiting to be saved through window")
+                            msg = await self.receive(timeout=10)
+                            if msg:
+                                if "come to the window" in msg.body:
+                                    print(f"[Occupant {self.agent.jid}] Coming to thw window...")
+                                    #TODO: graduatly goes to window
+                                    self.agent.enironment.leave_building(self.agent.jid)
+                                    self.agent.stop()
                     
                     elif pos in stairs and pos[2]-1 == -1:
                         new_pos = 0
@@ -213,7 +206,7 @@ class OccupantAgent(Agent):
 
                     #print(f"Occupant {self.agent.jid} is now in position {self.agent.environment.get_occupant_loc(self.agent.jid)}")
             else:
-                print(f"Occupant {self.agent.jid} didn't move")
+                print(f"Occupant {self.agent.jid} didn't move. New position is None")
 
         
         def distance_to_window(self):

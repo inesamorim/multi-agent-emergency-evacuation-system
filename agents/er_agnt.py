@@ -17,14 +17,13 @@ class ERAgent(Agent):
         super().__init__(jid, password)
         self.environment = environment
         self.type = type
-        ###### BOB WAS HERE ######
         self.helping = False #se está a transportar alguém
         self.occupants = {} # a dictionary, e.g., {id: [health, x, y, z]} - tarefas
         self.busy = True
         self.building = self.environment.get_building()  #ou recebem o andar onde estão ou recebem a grid toda
-        #self.occupant_info = None
         self.floor_alocated = -1
         self.to_help_list = []
+        self.tasks = [] #for firefighter outside
 
 
     def add_patient(self, patient_inf):
@@ -78,63 +77,70 @@ class ERAgent(Agent):
                     floor = i
                     er_id = f"eragent{i}@localhost"
                     #self.agent.floor_alocated = floor
+
+                    if i == 0:
+                        print(f"ER Agent {er_id} is staying outside to help with fires and saving people through the windows")
                     
-                    self.agent.environment.update_er_role(er_id, True)
-                    print(f"ER agent {er_id} is assigned captain of floor {floor}")
+                    else:
+                        self.agent.environment.update_er_role(er_id, True)
+                        print(f"ER agent {er_id} is assigned captain of floor {floor}")
 
-                    pos = self.possible_pos(floor)
-                    while pos == 0:
-                        pos = self.possible_pos(floor+1)
+                        pos = self.possible_pos(floor)
+                        while pos == 0:
+                            pos = self.possible_pos(floor+1)
 
-                    print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
-                    self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                        print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                        self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
                 return 1
 
             z = 0
             for i in range(0,self.agent.environment.num_er,agents_per_floor):
+                if i == 0:
+                    print(f"ER Agent eragent{i}@localhost is staying outside to help with fires and saving people through the windows")
                 #the number of er agents is higher than the number of floors
                 #agent_per_floor é a divisão inteira entre os agents e o numero de floors
                 #o que sobra vai para o andar 0
-                if z >= self.agent.environment.num_floors:
-                    #distribuir os que sobram
-                    z1 = 0
-                    for j in range(i, i+resto):
+                else:
+                    if z >= self.agent.environment.num_floors:
+                        #distribuir os que sobram
+                        z1 = 0
+                        for j in range(i, i+resto):
+                            er_id = f"eragent{j}@localhost"
+                            floor = z1
+                            self.agent.floor_alocated = floor
+                            pos = self.possible_pos(floor)
+                            if pos == 0:
+                                pos = self.possible_pos(floor+1)
+                                if pos == 0:
+                                    pos = pos = self.possible_pos(floor-1)
+                            print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                            self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                        z1 += 1
+                        break
+                    for j in range(i, i+agents_per_floor):
                         er_id = f"eragent{j}@localhost"
-                        floor = z1
+                        if i == j:
+                            self.agent.environment.update_er_role(er_id, True)
+                            #print(self.agent.environment.er_role[str(er_id)])
+                            print(f"ER agent {er_id} is assigned captain of floor {z}")
+                        floor = z
                         self.agent.floor_alocated = floor
                         pos = self.possible_pos(floor)
-                        while pos == 0:
-                            pos = self.possible_pos(floor+1)
+                        if pos == 0:
+                                pos = self.possible_pos(floor+1)
+                                if pos == 0:
+                                    pos = pos = self.possible_pos(floor-1)
+                        #print(pos)
                         print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
                         self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
-                    z1 += 1
-                    break
-                for j in range(i, i+agents_per_floor):
-                    er_id = f"eragent{j}@localhost"
-                    if i == j:
-                        self.agent.environment.update_er_role(er_id, True)
-                        #print(self.agent.environment.er_role[str(er_id)])
-                        print(f"ER agent {er_id} is assigned captain of floor {z}")
-                    floor = z
-                    self.agent.floor_alocated = floor
-                    pos = self.possible_pos(floor)
-                    while pos == 0:
-                        pos = self.possible_pos(floor+1)
-                    #print(pos)
-                    print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
-                    self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
-                z += 1
+                    z += 1
 
         def distribute_by_floor(self):
-            #TODO: se as escadas no andar 'x' estão impedidas por um obstáculo, então os er agents podem apenas ser distribuidos pelos andares anteriores?
             # assumindo que bombeiros passam fogo...
             num_floors = self.agent.environment.num_floors
-            num_er_agents = self.agent.environment.num_er
-            #print(num_floors, num_er_agents)
-            #se a divisão inteira de num_agents pelo num_floors tiver resto, os agents a mais ficam à espera de info?
+            num_er_agents = self.agent.environment.num_floors
             agents_per_floor = num_er_agents // num_floors
             resto = num_er_agents % num_floors
-            #print(agents_per_floor)
             return agents_per_floor, resto
 
         def possible_pos(self, floor):
@@ -168,7 +174,8 @@ class ERAgent(Agent):
                             else ver piso mais proximo que possa criar saida(o BMS é informado imediatamente e oprocesso
                             de tornar a janela em saida começa enquanto o ER se move para lá)
             '''
-            print(f"ER agent {self.agent.jid} is starting jobs...\n {self.agent.occupants}")
+            if self.agent.occupants != {}:
+                print(f"ER agent {self.agent.jid} is starting jobs...\n {self.agent.occupants}")
             while(self.agent.occupants != {}):
                 #help person
                 tarefa = self.agent.occupants.items()[0]
@@ -178,30 +185,11 @@ class ERAgent(Agent):
                 if new_pos:
                     self.move_to_position(new_position=new_pos)
                     print(f"Paramedic {self.agent.jid} is moving to new position {new_pos}")
+            if self.agent.occupants == {}:
+                #run from the fire
+
             await asyncio.sleep(5)
 
-            """if self.agent.environment.er_type[str(self.agent.jid)] == 'paramedic':
-                #might receive instructions from its captain
-                msg = await self.receive(timeout=10)
-                #respond with 'im busy' or 'im not busy'
-                if msg and 'busy' in msg.body:
-                    print(msg.body)
-                    captain = msg.sender
-                    response = Message(to=captain)
-                    if self.agent.busy:
-                        response.body = 'Busy: Yes'
-                    else:
-                        response.body = 'Busy: No'
-                        #go to person
-                        occ_id = msg.split(':')[1].strip()
-                        print(f"Paramedic {self.agent.jid} is in is way to help occupant {occ_id}")
-                        occ_pos = self.agent.environment.occupants_loc(str(occ_id))
-                        new_pos = self.find_next_position((occ_pos[0],occ_pos[1]))
-                        if new_pos:
-                            self.move_to_position(new_pos)
-                        #TODO: check if paramedic needs help from firefighter
-                    response.set_metadata('performative', 'informative')
-                    await self.send(response)"""
         
         #------------------------------------------------------------------------------------#
         #------------------------------------------------------------------------------------#
@@ -318,8 +306,6 @@ class ERAgent(Agent):
                     #o occ guarda o caminho q quer fazer 
                     self.path = self.reconstruct_path(came_from, current)
                     return self.path
-
-
 
                 x, y = current
                 neighbors = self.astar_possible_moves(x, y) #where he can walk to(they are poss moves)
@@ -442,9 +428,39 @@ class ERAgent(Agent):
 
 
 
-    class SaveThroughWindow(OneShotBehaviour):
+    class SaveThroughWindow(CyclicBehaviour):
         async def run(self):
-            agent_id, health, x, y, z = self.agent_data
+            if self.agent.environment.er_loc[str(self.agent.jid)] == (-1,-1,-1):
+                msg = await self.receive(timeout=10)
+                if msg:
+                    print(f"ER Agent {self.agent.jid} received message from {msg.sender}")
+                    if "We need stairs" in msg.body:
+                        parts = msg.body.split('.')
+                        floor = parts[0].split(':')[1].strip()
+                        people_to_save = parts[1].split(';')
+                        num_people = people_to_save[0].split(':')[1].strip()
+                        occupants = people_to_save[1].strip()
+                        self.agent.tasks.append((floor, num_people, occupants))
+
+                    print(f"ER Agent {self.agent.jid} is outside ready to start helping with firefighter's stairs\nTasks: {self.agent.tasks}")
+                    if self.agent.busy:
+                        task = self.agent.tasks.pop(0)
+                        if task:
+                            floor = task[0]
+                            num_people = task[1]
+                            occupants = task[2]
+                            print(f"ER Agent {self.agent.jid} is now helping people on floor {floor}")
+                            while people_to_save != 0:
+                                occ_id = occupants.pop(0)
+                                print(f"Saving {occ_id}...")
+                                msg = Message(to=str(occ_id))
+                                msg.body("You can come to the window")
+                                await asyncio.sleep(2)
+
+
+            await asyncio.sleep(3)
+
+            """agent_id, health, x, y, z = self.agent_data
 
             if not self.exits_available and not self.stairs_available:
                 print(f"Agent {agent_id} is preparing to save through the window...")
@@ -460,7 +476,7 @@ class ERAgent(Agent):
                     await self.agent.async_sleep(2)
             else:
                 print(f"Agent {agent_id} is waiting for an available exit or stairs.")
-                await self.agent.async_sleep(2)
+                await self.agent.async_sleep(2)"""
 
         async def find_accessible_window(self, x, y, z):
             windows = self.agent.environment.windows_locations
@@ -468,7 +484,6 @@ class ERAgent(Agent):
                 wx, wy = window
                 if self.is_window_accessible(wx, wy, x, y):
                     return (wx, wy, z)
-            return None
 
             for floor in range(len(self.agent.environment.windows_locations)):
                 if floor != z:
@@ -616,39 +631,19 @@ class ERAgent(Agent):
                 team = self.get_team()
                 self.its_hero_time(team, self.agent.to_help_list)
 
+                #check if floor is blocked
+                print(f"[Captain {self.agent.jid}] Checking for ways out in floor {self.agent.environment.er_loc[str(self.agent.jid)]}")
+                way_out = self.check_for_ways_out()
+                x = way_out[0]
+                y = way_out[1]
+                z = self.agent.environment.er_loc[str(self.agent.jid)]
+                if (x,y,z) in self.agent.environment.windows_locations:
+                    print(f"[Captain {self.agent.jid}] All exits and stairs in floor {z} are blocked.")
+                    await self.ask_for_stairs()
+                else:
+                    print(f"[Captain {self.agent.jid}] There are still exits and/or stairs available in floor {self.agent.environment.er_loc[str(self.agent.jid)][2]}")
+
                 #TODO: receber novos er agents se necesáro
-
-
-                """if self.agent.to_help_list != []:
-                    for occupant in self.agent.to_help_list:
-                        occ_id = occupant[0]
-                        occ_pos = (occupant[2], occupant[3], occupant[4])
-                        occ_helth_state = occupant[1]
-                        print(f"Captain {self.agent.jid} is trying to find someone to help {occ_id} in position {occ_pos}")
-                        #find er agents availble
-                        team = self.get_team()
-                        paramedics = []
-                        for agent in team:
-                            id = agent[0]
-                            type = agent[1]
-                            if type == 'paramedic':
-                                print(f"Paramedic {id} is in floor {self.agent.floor_alocated}")
-                                paramedics.append(id)
-                        
-                        #TODO:if there is fire in the way, we neeed a firefighter too
-                        #send message to paramedics
-                        for id in paramedics:
-                            await self.message_to_paramedic(id,occ_id)
-                            #check if paramedic is busy through a response message
-                            response = await self.receive(timeout=10)
-                            if response.sender == str(id):
-                                is_busy = response.split(':')[1].strip()
-                                print(is_busy)
-                                if is_busy == 'No':
-                                    break
-                        #cure person
-                        #if needed, take person and leave with her
-                        #if not, make yourseelf available again"""
 
                 #to_save = (sempre q ff estejam a tratar do paciente/ele morra isto é alterado)
                 '''
@@ -664,7 +659,7 @@ class ERAgent(Agent):
                 print("=================================================")
                 print("KarenOfFloor is inactive due to cap being False.")
             
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
 
         '''
         transportar as cenas de ver occ in floor para aqui
@@ -744,9 +739,43 @@ class ERAgent(Agent):
             else:
                 print(f"ER Agent {self.agent.jid} did not receive any messages")
 
+        def check_for_ways_out(self):
+            floor = self.agent.environment.er_loc[str(self.agent.jid)][2]
+            grid = self.agent.environment.get_grid(floor)
+            for exit in self.agent.environment.get_exit_loc(floor):
+                x = exit[0]
+                y = exit[1]
+                if grid[x][y] == 6:
+                    return (x,y)
+            for stairs in self.agent.environment.stairs_locations:
+                x = stairs[0]
+                y = stairs[1]
+                z = stairs[2]-1
+                if grid[x][y] == 3 and z == floor:
+                    return (x,y)
+            for window in self.agent.environment.windows_locations:
+                x = window[0]
+                y = window[1]
+                z = window[2]
+                if grid[x][y] == 2 and z == floor:
+                    return (x,y)
+            return (-1,-1)
 
 
-        #######################______________________________________######################
+        async def ask_for_stairs(self):
+            people_to_save = 0
+            occupants = []
+            for occ in self.agent.environment.occupants_loc.keys():
+                if self.agent.environment.occupants_loc[str(occ)][2] == self.agent.floor_alocated:
+                    people_to_save += 1
+                    occupants.append(occ)
+            for er_id in self.agent.environment.er_loc.keys():
+                if self.agent.environment.er_loc[str(er_id)] == (-1,-1,-1):
+                    #is outside
+                    print(f"ER Agent {self.agent.jid} is sending message to {er_id}")
+                    msg = Message(to=str(er_id))
+                    msg.body(f"[Captain {self.agent.floor_alocated}] We need stairs on the window in floor: {self.agent.floor_alocated}. People to save: {people_to_save}; {occupants}")
+                    await self.send(msg)
 
 
         def get_team(self):

@@ -12,12 +12,12 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(grid_size=15,num_floors=8, num_occupants=50, num_er=5)
+    environment = Environment(grid_size=15,num_floors=8, num_occupants=50, num_er=17)
     #await asyncio.sleep(10)
 
     #start user interface
-    interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
-    interface_thread.start()
+    #interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
+    #interface_thread.start()
 
     await asyncio.sleep(5) #let interface load
     
@@ -25,7 +25,7 @@ async def main():
         await agent.start(auto_register=True)
         await environment.queue.put(agent)
 
-    #Start 5 occupant agents
+    #Start occupant agents
     occupants = []
     num_occupants = len(environment.get_all_occupants_loc())
     for i in range(num_occupants):
@@ -186,6 +186,9 @@ async def main():
         behaviours.append(behav)
         behav = er_agent.add_behaviour(er_agent.ToSaveOrNotToSave())
         behaviours.append(behav)
+        if environment.er_loc[str(er_agent.jid)] == (-1,-1,-1):
+            behav = er_agent.add_behaviour(er_agent.SaveThroughWindow())
+            behaviours.append(behav)
         
             
     for occupant_agent in occupants:
