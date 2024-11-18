@@ -12,12 +12,12 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(grid_size=15,num_floors=8, num_occupants=50, num_er=17)
+    environment = Environment(grid_size=15,num_floors=4, num_occupants=50, num_er=9)
     #await asyncio.sleep(10)
 
     #start user interface
-    #interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
-    #interface_thread.start()
+    interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
+    interface_thread.start()
 
     await asyncio.sleep(5) #let interface load
     
@@ -178,10 +178,6 @@ async def main():
     for er_agent in er_agents:
         while(er_agent.busy):
             await asyncio.sleep(5)
-        """if er_agent.environment.get_er_role(er_agent.jid):
-            #print("foo =====================================================")
-            behav_2 = er_agent.add_behaviour(er_agent.ReceiveHealthState())
-            behaviours.append(behav_2)"""
         behav = er_agent.add_behaviour(er_agent.KarenOfFloor())
         behaviours.append(behav)
         behav = er_agent.add_behaviour(er_agent.ToSaveOrNotToSave())
@@ -194,22 +190,8 @@ async def main():
     for occupant_agent in occupants:
         behav = occupant_agent.add_behaviour(occupant_agent.HOFAH())
         behaviours.append(behav)
-    """for er_agent in er_agents:
-        while(er_agent.busy):
-            await asyncio.sleep(5)
-            #print("Waiting....")
-        #print("Not Waiting...")
-        #print(er_agent.environment.get_er_role(er_agent.jid))
-        if er_agent.environment.get_er_role(er_agent.jid):
-            #print("foo =====================================================")
-            behav = er_agent.add_behaviour(er_agent.CheckForHealthState())
-            behaviours.append(behav)"""
-            
 
     
-    
-    
-    #await asyncio.gather(*behaviours)
 
     while True:
         await manage_disasters()
@@ -220,4 +202,3 @@ async def main():
 
 if __name__ == "__main__":
     spade.container.Container().run(main())
-    #asyncio.run(main())
