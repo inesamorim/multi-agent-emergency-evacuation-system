@@ -27,7 +27,7 @@ class BuildingInterface:
             for x in range(self.env.grid_size):
                 row = []
                 for y in range(self.env.grid_size):
-                    label = tk.Label(self.floor_frames[z], text=" ", width=4, height=2, borderwidth=1, relief='solid')
+                    label = tk.Label(self.floor_frames[z], text=" ", width=2, height=1, borderwidth=1, relief='solid')
                     label.grid(row=x +1, column=y)
                     label.config(background='white')
                     row.append(label)
@@ -66,7 +66,8 @@ class BuildingInterface:
             '#c154c1': 'Occupant',
             'pink': 'Window',
             'lightblue': 'Stairs',
-            'red': 'Fire'
+            'red': 'Fire',
+            'blue': 'ER Agent'
         }
 
         row = 1 

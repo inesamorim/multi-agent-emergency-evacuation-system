@@ -12,7 +12,7 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(num_floors=8, num_occupants=50, num_er=5)
+    environment = Environment(grid_size=15,num_floors=8, num_occupants=50, num_er=5)
     #await asyncio.sleep(10)
 
     #start user interface
@@ -116,8 +116,8 @@ async def main():
                         if i >= 0 and i < environment.grid_size and j >= 0 and j < environment.grid_size:
                             #print(f"The fire has now expanded to position {new_pos}")
                             #smoke
-                            x2 = [i-1,i, i+1]
-                            y2 = [j-1, j, j+1]
+                            x2 = [i-2,i-1,i,i+1,i+2]
+                            y2 = [j-2,j-1, j, j+1,j+2]
                             for i1 in x2:
                                 for j1 in y2:
                                     if i1 >= 0 and i1 < environment.grid_size and j1 >= 0 and j1 < environment.grid_size:
@@ -154,6 +154,7 @@ async def main():
 
     # Send warnings to occupants
     for occupant_agent in occupants:
+        occupant_agent.add_behaviour(occupant_agent.LifeBar())
         occupant_agent.add_behaviour(occupant_agent.ReceiveWarning())
         #await asyncio.sleep(0.5)
     building_agent.add_behaviour(building_agent.SendWarnings())
@@ -177,15 +178,20 @@ async def main():
     for er_agent in er_agents:
         while(er_agent.busy):
             await asyncio.sleep(5)
-        if er_agent.environment.get_er_role(er_agent.jid):
+        """if er_agent.environment.get_er_role(er_agent.jid):
             #print("foo =====================================================")
             behav_2 = er_agent.add_behaviour(er_agent.ReceiveHealthState())
-            behaviours.append(behav_2)
+            behaviours.append(behav_2)"""
+        behav = er_agent.add_behaviour(er_agent.KarenOfFloor())
+        behaviours.append(behav)
+        behav = er_agent.add_behaviour(er_agent.ToSaveOrNotToSave())
+        behaviours.append(behav)
+        
             
     for occupant_agent in occupants:
         behav = occupant_agent.add_behaviour(occupant_agent.HOFAH())
         behaviours.append(behav)
-    for er_agent in er_agents:
+    """for er_agent in er_agents:
         while(er_agent.busy):
             await asyncio.sleep(5)
             #print("Waiting....")
@@ -194,7 +200,7 @@ async def main():
         if er_agent.environment.get_er_role(er_agent.jid):
             #print("foo =====================================================")
             behav = er_agent.add_behaviour(er_agent.CheckForHealthState())
-            behaviours.append(behav)
+            behaviours.append(behav)"""
             
 
     
