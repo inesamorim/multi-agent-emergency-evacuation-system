@@ -141,6 +141,22 @@ class BMSAgent(Agent):
         
     class Path_Throu_Building(CyclicBehaviour): #   ?help needed?
 
+        async def run(self):
+            ''' 
+            
+            andtes dos ER chegarem, se n houver saidas
+            se o andar do rés do chão tiver janelas, a mais perto das escadas e longe do fogo 
+            é tornada numa saída para os occ
+
+            quando a saida for bloqueada
+            BMS diz quais são os andares n afetados(menos afetados) -> occ dirigem-se para andar mais prox
+            func safe_floors()
+
+            quando ER chegar chamar choose_floor (demora dist ao rés do chão segundos a ser ativada)
+            
+            '''
+            ...
+
         async def poss_path(self, z_inical, z_final, stair_pos):
             '''
             def duable(self, initial_pos, destination)-> Boolean
@@ -177,42 +193,78 @@ class BMSAgent(Agent):
 
             if count==c: self.agent.environment.dead_floors.append[floor]
             return count*100//c
-            
-    '''
-    se o fogo tiver afetado todas as entradas/saídas possíveis
-    ou existirem andares sem acesso direto a saidas(no início antes de ER irem para lá)
-    escolher o melhor nº mínimo de janelas para serem transformadas em exits
-    e quais as melhores janelas
-    '''
-    async def safest_floors(self):
-        bild = []
-        for z in range(self.agent.environmet.get_num_of_floors()):
-            x = self.classify_floor(z)
-            if x<45:
-                bild.append([x, z])
-            #sorted_coordinates = [[coord for coord, dist in sorted(zip(possible_moves, distances), key=lambda x: x[1])]]
 
-        sorted_coords = [[[perct, floor] for perct, floor in sorted(bild, key=lambda x: x[0])]]
+        async def occ_in_floor(self):
+            '''
+            counts n of occ per floor given higher priority to those with less movement
+            '''
+            #para cada occ, ver em q andar está e somar 
+            #type[-1, 0, 1, 2] vall atribuid [0, 7, 4.5, 1]
+            value = {-1: 0, 0: 7, 1: 4.5, 2: 1}
+            count = [0 for i in range(len(self.agent.environment.get_num_of_floors()))]
+            all_occ_loc = self.agent.environment.get_all_occupants_loc() #{id: x, y, z}
+            for id, loc in all_occ_loc:
+                count[loc[2]] += value[self.agent.environment.get_occupant_state(id)]
+                
+            return count
         
-        '''
-        -> nº of doors will depend on
-            nº of floors where classify floor<10
-            nº of occ
+        async def occ_non_destruct(self):
+            '''
+            per floor returns the nº of occupants per area non destructed
+            '''
+            occ_count=self.occ_in_floor()
+            f_count = [0 for i in range(self.agent.environment.get_num_of_floors())]
 
-        will try to get the furdest windows poss withou totally compromizing the safty of the choise
+            for z in range(self.agent.environment.get_num_of_floors()):
+                f_count[z] = [z,occ_count[z]/(1-self.classify_floor(z))]
 
-        chose the window with the smallest dist to stairs
-        '''
+            return f_count
+        
+        async def safe_floors(self):
+            '''
+            retorna os andares mais seguros ordenados por nível de destruição(no momento em q a função foi chamada)
+            '''
+            f = []
+            for z in range(self.agent.environment.get_num_of_floors()):
+                p = self.classify_floor(z)
+                if p<45:
+                    f.append([z,p])
 
-        ...
-    
-    async def alternative_exit(self):
-        #exits = self.agent.environmet.get_all_exits_loc()
-        if len(self.agent.environmet.get_all_exits_loc()) == 0:
-            best_floors = self.safest_floors()
-            if len(best_floors) == 0:
-                return None
+            return sorted(f, key=lambda x: x[1])
+        
+        async def choose_floors(self):
+            '''
+            ver nº mazimo de andares que possam ser salvos simultaneamente 
+                -> por cada 15 ER uma janela pode ser aberta
+                    (uma ambulância, uma mangueira, um carro escada) 5 Er por cada 
+
+            a janela q eu vou querer abrirvai ser a q têm maior ratio (escadas não são queimadas)
+            '''
+            #assume q nunca se vai chamar mais ER do q o necessário
+            n_windows = (self.agent.environment.get_all_er_locs()%15)+1
+            f_count = self.occ_non_destruct()
+            
+            sorted_coords = [occ_f for occ_f in sorted(f_count, key = lambda x: x[1])]
+
+            while n_windows>0:
+                
+                ...
             ...
-        ...        
+            
+        '''
+        se o fogo tiver afetado todas as entradas/saídas possíveis
+        ou existirem andares sem acesso direto a saidas(no início antes de ER irem para lá)
+        escolher o melhor nº mínimo de janelas para serem transformadas em exits
+        e quais as melhores janelas
+        '''
+    
+        async def alternative_exit(self):
+            #exits = self.agent.environmet.get_all_exits_loc()
+            if len(self.agent.environmet.get_all_exits_loc()) == 0:
+                best_floors = self.safest_floors()
+                if len(best_floors) == 0:
+                    return None
+                ...
+            ...        
 
 #TODO: Check for disasters
