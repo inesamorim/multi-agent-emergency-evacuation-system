@@ -242,13 +242,15 @@ class BMSAgent(Agent):
             '''
             #assume q nunca se vai chamar mais ER do q o necessário
             n_windows = (self.agent.environment.get_all_er_locs()%15)+1
-            f_count = self.occ_non_destruct()
+            f_count = self.occ_non_destruct() #[z, ratio]
             
             sorted_coords = [occ_f for occ_f in sorted(f_count, key = lambda x: x[1])]
 
-            while n_windows>0:
-                
-                ...
+            while n_windows<0:
+                if len(self.agent.environment.get_windows_loc(sorted_coords[0][0]))>0:
+                    #dizer aos ER para abrirem janela de floor
+                    n_windows -= 1
+                    sorted_coords=sorted_coords[1:] #remover o 1º elemento da lista
             ...
             
         '''
@@ -257,6 +259,21 @@ class BMSAgent(Agent):
         escolher o melhor nº mínimo de janelas para serem transformadas em exits
         e quais as melhores janelas
         '''
+
+        async def call_ER(self):
+            occs = self.agent.environmet.get_all_occupants_state()
+            prmd = ff = 0
+            
+            for _, type in occs:
+                if type <2 and type>-1:
+                    prmd += 1
+                ff+=1
+
+            prmd = prmd%6 - int(0.2*prmd%6) +1
+            ff = ff%5 - int(0.2*ff%5) +1
+            nER = prmd+ff%5 + 5 if prmd+ff%5!=0 else prmd+ff%5
+
+            return prmd, ff+nER-(prmd+ff)
     
         async def alternative_exit(self):
             #exits = self.agent.environmet.get_all_exits_loc()
