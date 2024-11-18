@@ -95,14 +95,20 @@ class Environment:
         self.er_loc = {}
         self.er_role = {}
         self.er_type = {}
+        
+        p = []
+        f = [] #BOB
         for i in range(self.num_er):
             id = f"eragent{i}@localhost"
             self.er_loc[str(id)] = (-1,-1,-1)
             self.er_role[str(id)] = False #not captain
             if i%2 == 0:
+                f.append(id)
                 self.er_type[str(id)] = 'firefighter'
             else:
+                p.append(id)
                 self.er_type[str(id)] = 'paramedic'
+        self.er_type_distribut = {"1":p, "2":f} #os id de cada ER do tipo x
         self.er_occ_status = {} #cap insets occ, paramedics remove occ if dead
 
         #BMS INFO
@@ -263,6 +269,9 @@ class Environment:
     
     def get_all_er_types(self):
         return self.er_type
+    
+    def get_er_type_distribut(self):
+        return self.er_type_distribut #{1:[id, id,...], 2: }
     
     def get_er_role(self, er_id):
         return self.er_role[str(er_id)]
