@@ -421,6 +421,73 @@ class ERAgent(Agent):
         #------------------------------------------------------------------------------------#
         #------------------------------------------------------------------------------------#
         #------------------------funções dos ff e talvez paramed-----------------------------#
+        async def get_that_fire(self):
+            x1, y1, z = self.agent.environment.er_loc[str(self.agent.jid)]
+            grid = self.agent.environment.get_grid(z)
+            rows, cols = len(grid), len(grid[0])
+
+            for x in rows:
+                for y in cols:
+                    if grid[x][y] == 5:
+                        if self.agent.environment.obstacles[(x, y)] == "fire":
+                            x1 = x, y1 = y
+                            break
+            return x1, y1
+
+        async def kill_that_fire(self):
+            '''
+            se no andar sponar fogo o ff vai lá apagá-lo
+            vê onde está o fogo no andar 
+            caham path para essa pos
+            enquanto houver fogo, chamar path para a 1ª pos encontrada
+
+            o path já apaga parte do fo
+            '''
+            x1, y1, z = self.agent.environment.er_loc[str(self.agent.jid)]
+            x, y = self.get_that_fire() 
+            while [x, y] != [x1, y1]:
+                self.find_path([x, y, z])
+                x, y = self.get_that_fire()
+
+            return 
+
+        async def save_stairs(self, extinguish_limit=4, time_period=2 ):
+            '''
+            in floor their in, if not salvable-> too in flames
+            get poss of main stairs(this case only one exists)
+            for radius of 3 kill fire
+            '''
+            x1, y1, z = self.agent.environment.er_loc[str(self.agent.jid)]
+            x, y = self.agent.environment.get_stairs_loc(z) #[x, y]
+            grid = self.agent.environment.get_grid(z)
+
+            extinguished_count = 0  # Counter for flames extinguished in this period
+
+            # Define the range to check (2 squares around)
+            for dx in range(-2, 3):  # Includes -2, -1, 0, 1, 2
+                for dy in range(-2, 3):
+                    # Calculate the coordinates to check
+                    nx, ny = x + dx, y + dy
+                    
+                    # Check if the coordinates are within bounds of the grid
+                    if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]):
+                        # If the square contains flames, extinguish them
+                        if grid[nx][ny] == 5:
+                            if self.environment.obstacles(str(nx, ny)) == "fire":
+                                self.environment.obstacles.pop(str(nx, ny))
+                                print(f"Flame extinguished at ({nx}, {ny})")
+                                extinguished_count += 1
+                            
+                            # Check if the extinguished limit is reached
+                            if extinguished_count >= extinguish_limit:
+                                print(f"Reached extinguish limit of {extinguish_limit}. Pausing for {time_period} seconds...")
+                                time.sleep(time_period)  # Pause
+                                extinguished_count = 0  # Reset counter
+
+
+            return 
+        
+        
 
 
 
