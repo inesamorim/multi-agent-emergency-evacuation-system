@@ -133,7 +133,10 @@ class OccupantAgent(Agent):
             response = await self.receive(timeout=10) 
 
             if response:
-                await self.process_move(response.body)
+                if "new position" in response.body:
+                    await self.process_move(response.body)
+                elif "come to the window" in msg.body:
+                    await self.go_to_window()
             else:
                 print(f"Occupant {self.agent.jid} didn't move")
 
@@ -168,13 +171,6 @@ class OccupantAgent(Agent):
                                 self.agent.floor = new_pos[2]
                         else:
                             print(f"The stairs in floor {pos[2]-1} are blocked. Occupant {self.agent.jid} waiting to be saved through window")
-                            msg = await self.receive(timeout=10)
-                            if msg:
-                                if "come to the window" in msg.body:
-                                    print(f"[Occupant {self.agent.jid}] Coming to thw window...")
-                                    #TODO: graduatly goes to window
-                                    self.agent.enironment.leave_building(self.agent.jid)
-                                    self.agent.stop()
                     
                     elif pos in stairs and pos[2]-1 == -1:
                         new_pos = 0
@@ -190,25 +186,33 @@ class OccupantAgent(Agent):
                                         print(f"Occupant {self.agent.jid} is moving to new position {pos}")
                                         self.agent.environment.update_occupant_position(self.agent.jid, *pos)
 
-
-                    elif pos in windows:
-                        print(f"Occupant {self.agent.jid} threw himself out the window in floor {pos[2]}")
-                        #TODO: check if he is alive
-                        self.agent.environment.occupants_loc.pop(str(self.agent.jid))
-                        self.agent.environemnt.occupants_saved += 1 #assuming he survived
-                        await self.agent.stop()
-
-
                     else:
                         if self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
                             print(f"Occupant {self.agent.jid} is moving to new position {pos}")
                             self.agent.environment.update_occupant_position(self.agent.jid, *pos)
 
+
+                    """elif pos in windows:
+                        print(f"Occupant {self.agent.jid} threw himself out the window in floor {pos[2]}")
+                        #TODO: check if he is alive
+                        self.agent.environment.occupants_loc.pop(str(self.agent.jid))
+                        self.agent.environemnt.occupants_saved += 1 #assuming he survived
+                        await self.agent.stop()"""
+
+
+                    
+
                     #print(f"Occupant {self.agent.jid} is now in position {self.agent.environment.get_occupant_loc(self.agent.jid)}")
             else:
                 print(f"Occupant {self.agent.jid} didn't move. New position is None")
 
-        
+        async def go_to_window(self):
+            print(f"[Occupant {self.agent.jid}] Coming to the window...")
+            #TODO: graduatly goes to window
+            self.agent.environment.leave_building(self.agent.jid)
+            self.agent.stop()
+
+
         def distance_to_window(self):
             min_dist = len(self.agent.environment.get_grid(0)) + 2
             x, y, z = self.agent.environment.get_occupant_loc(self.agent.jid)

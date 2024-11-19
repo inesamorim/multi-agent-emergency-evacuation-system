@@ -10,7 +10,7 @@ from environment import Environment
 import time
 import numpy as np
 import heapq
-
+import ast
 
 class ERAgent(Agent):
     def __init__(self, jid, password, environment:Environment, type):
@@ -66,9 +66,9 @@ class ERAgent(Agent):
             #print("ER Agents are now distributing themselves through the floors...")
             if str(self.agent.jid) == "eragent0@localhost":
                 agents_per_floor, resto = self.distribute_by_floor()
-                self.distribution(agents_per_floor, resto)
+                await self.distribution(agents_per_floor, resto)
 
-        def distribution(self, agents_per_floor, resto):
+        async def distribution(self, agents_per_floor, resto):
             if agents_per_floor == 0:
                 #the number of er agents is lower than the number of floors
                 #one er agent per floor, until there is no one left to distribute
@@ -86,36 +86,40 @@ class ERAgent(Agent):
 
                         pos = self.possible_pos(floor)
                         while pos == 0:
-                            pos = self.possible_pos(floor+1)
+                            await asyncio.sleep(2)
+                            pos = self.possible_pos(floor)
 
                         print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
                         self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
                 return 1
 
             z = 0
-            for i in range(0,self.agent.environment.num_er,agents_per_floor):
-                if i == 0:
-                    print(f"ER Agent eragent{i}@localhost is staying outside to help with fires and saving people through the windows")
+            print(f"ER Agent eragent0@localhost is staying outside to help with fires and saving people through the windows")
+            for i in range(1,self.agent.environment.num_er,agents_per_floor):
                 #the number of er agents is higher than the number of floors
                 #agent_per_floor é a divisão inteira entre os agents e o numero de floors
                 #o que sobra vai para o andar 0
-                else:
-                    if z >= self.agent.environment.num_floors:
-                        #distribuir os que sobram
-                        z1 = 0
-                        for j in range(i, i+resto):
-                            er_id = f"eragent{j}@localhost"
-                            floor = z1
-                            self.agent.floor_alocated = floor
+                if z >= self.agent.environment.num_floors:
+                    #distribuir os que sobram
+                    z1 = 0
+                    for j in range(i, i+resto):
+                        er_id = f"eragent{j}@localhost"
+                        floor = z1
+                        self.agent.floor_alocated = floor
+                        pos = self.possible_pos(floor)
+                        while pos == 0:
+                            await asyncio.sleep(2)
                             pos = self.possible_pos(floor)
+                        """if pos == 0:
+                            pos = self.possible_pos(floor+1)
                             if pos == 0:
-                                pos = self.possible_pos(floor+1)
-                                if pos == 0:
-                                    pos = pos = self.possible_pos(floor-1)
-                            print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
-                            self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
-                        z1 += 1
-                        break
+                                pos = pos = self.possible_pos(floor-1)"""
+                        print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                        self.agent.environment.er_loc[str(er_id)] = (pos[0], pos[1],floor)
+                        self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                    z1 += 1
+                    break
+                else:
                     for j in range(i, i+agents_per_floor):
                         er_id = f"eragent{j}@localhost"
                         if i == j:
@@ -125,19 +129,25 @@ class ERAgent(Agent):
                         floor = z
                         self.agent.floor_alocated = floor
                         pos = self.possible_pos(floor)
-                        if pos == 0:
+                        while pos == 0:
+                            await asyncio.sleep(2)
+                            pos = self.possible_pos(floor)
+                        """ if pos == 0:
                                 pos = self.possible_pos(floor+1)
                                 if pos == 0:
-                                    pos = pos = self.possible_pos(floor-1)
-                        #print(pos)
+                                    pos = pos = self.possible_pos(floor-1)"""
                         print(f"ER agent {er_id} is heading to position {pos[0],pos[1],floor}")
+                        self.agent.environment.er_loc[str(er_id)] = (pos[0], pos[1],floor)
                         self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                        #self.agent.environment.update_er_position(er_id, pos[0], pos[1], floor)
+                        #print(self.agent.environment.er_loc[str(self.agent.jid)])
                     z += 1
+            #print(self.agent.environment.er_loc)
 
         def distribute_by_floor(self):
             # assumindo que bombeiros passam fogo...
             num_floors = self.agent.environment.num_floors
-            num_er_agents = self.agent.environment.num_floors
+            num_er_agents = self.agent.environment.num_er
             agents_per_floor = num_er_agents // num_floors
             resto = num_er_agents % num_floors
             return agents_per_floor, resto
@@ -184,6 +194,15 @@ class ERAgent(Agent):
                 if new_pos:
                     self.move_to_position(new_position=new_pos)
                     print(f"Paramedic {self.agent.jid} is moving to new position {new_pos}")
+
+            msg = await self.receive(timeout=10)
+            if msg:
+                if "We can leave" in msg.body:
+                    print(f"ER Agent {self.agent.jid} is leaving the building")
+                    x, y, z = self.agent.environment.er_loc[str(self.agent.jid)]
+                    self.agent.environment.er_loc.pop(str(self.agent.jid))
+                    self.agent.environment.building[z][x][y] = 0
+                    self.agent.stop()
 
             await asyncio.sleep(5)
 
@@ -242,7 +261,7 @@ class ERAgent(Agent):
                     
 
             return fire_count
-
+        
 
         def astar_possible_moves(self, x, y):
             _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
@@ -494,33 +513,45 @@ class ERAgent(Agent):
 
     class SaveThroughWindow(CyclicBehaviour):
         async def run(self):
-            if self.agent.environment.er_loc[str(self.agent.jid)] == (-1,-1,-1):
+            if self.agent.environment.er_loc[str(self.agent.jid)] == (-1,-1,-1) and str(self.agent.jid) == 'eragent0@localhost':
                 msg = await self.receive(timeout=10)
                 if msg:
                     print(f"ER Agent {self.agent.jid} received message from {msg.sender}")
                     if "We need stairs" in msg.body:
                         parts = msg.body.split('.')
-                        floor = parts[0].split(':')[1].strip()
+                        floor = int(parts[0].split(':')[1].strip())
                         people_to_save = parts[1].split(';')
-                        num_people = people_to_save[0].split(':')[1].strip()
-                        occupants = people_to_save[1].strip()
+                        num_people = int(people_to_save[0].split(':')[1].strip())
+                        raw_occupants = people_to_save[1].strip()
+                        try:
+                            occupants = ast.literal_eval(raw_occupants)
+                            print(occupants)
+                        except (SyntaxError, ValueError) as e:
+                            print("Erro ao interpretar a lista:", e)
+                            occupants = []
+                        
                         self.agent.tasks.append((floor, num_people, occupants))
-
+                    print("========================================================================================================")
                     print(f"ER Agent {self.agent.jid} is outside ready to start helping with firefighter's stairs\nTasks: {self.agent.tasks}")
-                    if self.agent.busy:
-                        task = self.agent.tasks.pop(0)
-                        if task:
-                            floor = task[0]
-                            num_people = task[1]
-                            occupants = task[2]
-                            print(f"ER Agent {self.agent.jid} is now helping people on floor {floor}")
-                            while people_to_save != 0:
-                                occ_id = occupants.pop(0)
-                                print(f"Saving {occ_id}...")
-                                msg = Message(to=str(occ_id))
-                                msg.body("You can come to the window")
-                                await asyncio.sleep(2)
-
+                    print("========================================================================================================")
+                    if not self.agent.busy:
+                        while self.agent.tasks != []:
+                            task = self.agent.tasks.pop(0)
+                            if task:
+                                floor = task[0]
+                                num_people = task[1]
+                                occupants = task[2]
+                                print(f"ER Agent {self.agent.jid} is now helping people on floor {floor}")
+                                while people_to_save != 0:
+                                    occ_id = occupants.pop(0)
+                                    if str(occ_id) in self.agent.environment.occupants_loc.keys():
+                                        print(f"Saving {occ_id}...")
+                                        msg = Message(to=str(occ_id))
+                                        msg.body = "You can come to the window"
+                                        await self.send(msg)
+                                        await asyncio.sleep(2)
+                                    else:
+                                        print(f"Occupant {occ_id} already died")
 
             await asyncio.sleep(3)
 
@@ -695,16 +726,25 @@ class ERAgent(Agent):
                 team = self.get_team()
                 self.its_hero_time(team, self.agent.to_help_list)
 
-                #check if floor is blocked
-                print(f"[Captain {self.agent.jid}] Checking for ways out in floor {self.agent.environment.er_loc[str(self.agent.jid)]}")
-
                 z = self.agent.environment.er_loc[str(self.agent.jid)][2]
 
-                if not self.check_for_ways_out():
-                    print(f"[Captain {self.agent.jid}] All exits and stairs in floor {z} are blocked.")
-                    await self.ask_for_stairs()
-                else:
-                    print(f"[Captain {self.agent.jid}] There are still exits and/or stairs available in floor {z}")
+                #check for people to save
+                if self.can_we_leave():
+                    for er_id in self.agent.environment.er_loc.keys():
+                        if self.agent.environment.er_loc[str(er_id)][2] == z:
+                            msg = Message(to=str(er_id))
+                            msg.body = f"[Captain {z}] You can leave the building. There is no one to save."
+                            await self.send(msg)
+
+                #check if floor is blocked
+                print(f"[Captain {self.agent.jid}] Checking for ways out in floor {self.agent.environment.er_loc[str(self.agent.jid)][2]}")
+  
+                if z != -1:
+                    if not self.check_for_ways_out():
+                        print(f"[Captain {self.agent.jid}] All exits and stairs in floor {z} are blocked.")
+                        await self.ask_for_stairs()
+                    else:
+                        print(f"[Captain {self.agent.jid}] There are still exits and/or stairs available in floor {z}")
 
                 #TODO: receber novos er agents se necesáro
 
@@ -718,9 +758,9 @@ class ERAgent(Agent):
                 '''
 
 
-            else:
-                print("=================================================")
-                print("KarenOfFloor is inactive due to cap being False.")
+            #else:
+                #print("=================================================")
+                #print("KarenOfFloor is inactive due to cap being False.")
             
             await asyncio.sleep(5)
 
@@ -728,6 +768,13 @@ class ERAgent(Agent):
         transportar as cenas de ver occ in floor para aqui
         as classes anteriores foram tranferidas para o lixo caso alguem qinda as queira usar
         '''
+
+        def can_we_leave(self):
+            z = self.agent.environment.er_loc[str(self.agent.jid)][2]
+            for occ in self.agent.environment.occupants_loc.keys():
+                if self.agent.environment.occupants_loc[str(occ)][2] == z:
+                    return False
+            return True
 
         async def message_to_paramedic(self,id, occ_id):
             print(f"Asking for paramedic {id} for help")
@@ -826,15 +873,17 @@ class ERAgent(Agent):
             occupants = []
             z = self.agent.environment.er_loc[str(self.agent.jid)][2]
             for occ in self.agent.environment.occupants_loc.keys():
-                if self.agent.environment.occupants_loc[str(occ)][2] == self.agent.floor_alocated:
+                if self.agent.environment.occupants_loc[str(occ)][2] == self.agent.environment.er_loc[str(self.agent.jid)][2]:
                     people_to_save += 1
                     occupants.append(occ)
             for er_id in self.agent.environment.er_loc.keys():
-                if self.agent.environment.er_loc[str(er_id)] == (-1,-1,-1):
+                if self.agent.environment.er_loc[str(er_id)] == (-1,-1,-1) and er_id == 'eragent0@localhost':
                     #is outside
+                    print("----------------------------------------------------------")
                     print(f"ER Agent {self.agent.jid} is sending message to {er_id}")
                     msg = Message(to=str(er_id))
-                    msg.body(f"[Captain {z}] We need stairs on the window in floor: {z}. People to save: {people_to_save}; {occupants}")
+                    msg.body= f"[Captain {z}] We need stairs on the window in floor: {z}. People to save: {people_to_save}; {occupants}"
+                    #print(occupants)
                     await self.send(msg)
 
 
