@@ -269,10 +269,10 @@ class BMSAgent(Agent):
                     prmd += 1
                 ff+=1
 
-            prmd = prmd%6 - int(0.2*prmd%6) +1
-            ff = ff%5 - int(0.2*ff%5) +1
-            nER = prmd+ff%5 + 5 if prmd+ff%5!=0 else prmd+ff%5
-            nER = np.max(nER, self.agent.environmet.get_num_of_floors()*5)
+            prmd = prmd//6 - int(0.2*prmd//6) +1
+            ff = ff//5 - int(0.2*ff//5) +1
+            nER = prmd+ff//5 + 5 if prmd+ff//5!=0 else prmd+ff%5
+            nER = np.max(nER, self.agent.environmet.get_num_of_floors()*3)
 
             return int(nER*0.3), int(nER*0.7)+1
     
