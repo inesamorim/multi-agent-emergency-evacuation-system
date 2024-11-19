@@ -3,11 +3,12 @@ from datetime import datetime
 import random
 
 class Environment:
-    def __init__(self, grid_size=10, num_floors=1, num_occupants = 5, num_er = 4):
+    def __init__(self, grid_size=10, num_floors=1, num_occupants = 5):
         self.grid_size = grid_size
         self.num_floors = num_floors
         self.num_occupants = num_occupants
-        self.num_er = num_er
+        #self.num_er = max(self.num_floors*3 + 1, self.call_ER())
+        self.num_er = self.num_floors*3 + 1
 
         self.building = [[[0 for _ in range(grid_size)] for _ in range(grid_size)] for _ in range(num_floors)]
         self.building.append((-1,-1,-1)); # pos outside of building
@@ -97,18 +98,25 @@ class Environment:
         self.er_type = {}
         
         p = []
-        f = [] #BOB
+        f = [] 
+        s = [] #BOB
         for i in range(self.num_er):
             id = f"eragent{i}@localhost"
             self.er_loc[str(id)] = (-1,-1,-1)
             self.er_role[str(id)] = False #not captain
-            if i%2 == 0:
+            if i == 0:
+                f.append(id)
+                self.er_type[str(id)] = 'firefighter'
+            elif (i-1)%3 == 0:
+                s.append(id)
+                self.er_type[str(id)] = 'security'       
+            elif i%2 == 0:
                 f.append(id)
                 self.er_type[str(id)] = 'firefighter'
             else:
                 p.append(id)
                 self.er_type[str(id)] = 'paramedic'
-        self.er_type_distribut = {"1":p, "2":f} #os id de cada ER do tipo x
+        self.er_type_distribut = {"1":p, "2":f, "3":s} #os id de cada ER do tipo x
         self.er_occ_status = {} #cap insets occ, paramedics remove occ if dead
 
         #BMS INFO

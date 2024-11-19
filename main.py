@@ -12,12 +12,12 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(grid_size=15,num_floors=4, num_occupants=50, num_er=9)
+    environment = Environment(grid_size=15,num_floors=8, num_occupants=50)
     #await asyncio.sleep(10)
 
     #start user interface
-    interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
-    interface_thread.start()
+    #interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
+    #interface_thread.start()
 
     await asyncio.sleep(5) #let interface load
     
@@ -38,12 +38,10 @@ async def main():
 
     #Start ER Agents 
     er_agents = []
-    num_er = len(environment.get_all_er_locs())
+    num_er = environment.num_er
     for i in range(num_er):
-        if i % 2 == 0:
-            type = 'firefighter'
-        else:
-            type = 'paramedic'
+        er_id = f"eragent{i}@localhost"
+        type = environment.er_type[str(er_id)]
         er_agent = er_agnt.ERAgent(f"eragent{i}@localhost", "password", environment, type)
         er_agents.append(er_agent)
         await enqueue_agent(er_agent)
