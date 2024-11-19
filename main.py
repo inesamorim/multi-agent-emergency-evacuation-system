@@ -16,8 +16,8 @@ async def main():
     #await asyncio.sleep(10)
 
     #start user interface
-    #interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
-    #interface_thread.start()
+    interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
+    interface_thread.start()
 
     await asyncio.sleep(5) #let interface load
     

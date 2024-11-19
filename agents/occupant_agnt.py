@@ -135,7 +135,7 @@ class OccupantAgent(Agent):
             if response:
                 if "new position" in response.body:
                     await self.process_move(response.body)
-                elif "come to the window" in msg.body:
+                elif "come to the window" in response.body:
                     await self.go_to_window()
             else:
                 print(f"Occupant {self.agent.jid} didn't move")
@@ -312,7 +312,10 @@ class OccupantAgent(Agent):
             
             
             occupant_state = self.agent.environment.get_occupant_state(self.agent.jid)
-            x1, y1, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            if str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                x1, y1, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+            else:
+                return False
             if occupant_state == 0:
                 #cant move more than 1 step /cell
                 if np.sqrt((x-x1)**2) > 1 or np.sqrt((y-y1)**2) > 1:

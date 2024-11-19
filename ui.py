@@ -107,19 +107,33 @@ class BuildingInterface:
                         label.config(text= "🚪")  # Door
                     elif value == 2:
                         color = 'pink'   # Window
+                        text = " "
                     elif value == 3:
                         color = 'lightblue'   # Stairs
+                        text = " "
                     elif value == 4:
                         color = '#c154c1' # Occupant
+                        text = " "
                     elif value == 5:
                         color = "red"  # Fire
+                        text = " "
                     elif value == 6:
                         color = '#ff007f' # Exit
+                        text = " "
                     elif value == 7:
                         color = "blue"    # ER Agent
+                        for id in self.env.er_loc.keys():
+                            if self.env.er_loc[str(id)] == (x,y,z):
+                                if self.env.er_type[str(id)] == 'firefighter':
+                                    text="ff"
+                                elif self.env.er_type[str(id)] == 'paramedic':
+                                    text="pm"
+                                else:
+                                    text="so"
                     elif value == 8:
                         color = 'lightgray'     #Obstacle
-                    label.config(bg=color)
+                        text = " "
+                    label.config(bg=color, text="text")
         #look for smoke
         for loc in self.env.smoke_pos:
                 x, y, z = loc

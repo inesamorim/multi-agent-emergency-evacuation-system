@@ -124,7 +124,7 @@ class ERAgent(Agent):
                         er_id = f"eragent{j}@localhost"
                         if i == j:
                             self.agent.environment.update_er_role(er_id, True)
-                            #print(self.agent.environment.er_role[str(er_id)])
+                            print(self.agent.environment.er_role[str(er_id)])
                             print(f"ER agent {er_id} is assigned captain of floor {z}")
                         floor = z
                         self.agent.floor_alocated = floor
@@ -197,7 +197,7 @@ class ERAgent(Agent):
 
             msg = await self.receive(timeout=10)
             if msg:
-                if "We can leave" in msg.body:
+                if "leave the building" in msg.body:
                     print(f"ER Agent {self.agent.jid} is leaving the building")
                     x, y, z = self.agent.environment.er_loc[str(self.agent.jid)]
                     self.agent.environment.er_loc.pop(str(self.agent.jid))
@@ -475,7 +475,7 @@ class ERAgent(Agent):
                                 num_people = task[1]
                                 occupants = task[2]
                                 print(f"ER Agent {self.agent.jid} is now helping people on floor {floor}")
-                                while people_to_save != 0:
+                                while num_people != 0:
                                     occ_id = occupants.pop(0)
                                     if str(occ_id) in self.agent.environment.occupants_loc.keys():
                                         print(f"Saving {occ_id}...")
@@ -483,6 +483,7 @@ class ERAgent(Agent):
                                         msg.body = "You can come to the window"
                                         await self.send(msg)
                                         await asyncio.sleep(2)
+                                        num_people -= 1
                                     else:
                                         print(f"Occupant {occ_id} already died")
 
@@ -659,6 +660,7 @@ class ERAgent(Agent):
                 team = self.get_team()
                 self.its_hero_time(team, self.agent.to_help_list)
 
+                print(self.agent.environment.er_role)
                 z = self.agent.environment.er_loc[str(self.agent.jid)][2]
 
                 #check for people to save
@@ -668,6 +670,8 @@ class ERAgent(Agent):
                             msg = Message(to=str(er_id))
                             msg.body = f"[Captain {z}] You can leave the building. There is no one to save."
                             await self.send(msg)
+                else:
+                    print(f"[Captain {z}] We can't leave yet.")
 
                 #check if floor is blocked
                 print(f"[Captain {self.agent.jid}] Checking for ways out in floor {self.agent.environment.er_loc[str(self.agent.jid)][2]}")
