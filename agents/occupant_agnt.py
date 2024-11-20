@@ -531,7 +531,7 @@ class OccupantAgent(Agent):
             
             open_set = []
 
-            x, y, _ = self.environment.get_occupant_loc(self.agent.jid)
+            x, y, _ = self.agent.environment.get_occupant_loc(self.agent.jid)
 
             position = (x, y)
             heapq.heappush(open_set, (0, position))  # Priority queue with (cost, position)
