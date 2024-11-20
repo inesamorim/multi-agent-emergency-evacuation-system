@@ -103,6 +103,7 @@ class BuildingInterface:
                     value = grid[x][y]
                     label = self.grid_labels[z][x][y]
                     color = "white"
+                    text = " "
                     if value == 1:
                         label.config(text= "🚪")  # Door
                     elif value == 2:
@@ -133,7 +134,7 @@ class BuildingInterface:
                     elif value == 8:
                         color = 'lightgray'     #Obstacle
                         text = " "
-                    label.config(bg=color, text="text")
+                    label.config(bg=color, text=text)
         #look for smoke
         for loc in self.env.smoke_pos:
                 x, y, z = loc
@@ -149,6 +150,7 @@ class BuildingInterface:
         self.update_grid()
         self.update_stats()
         self.root.mainloop()
+        self.root.destroy()
         
 
 

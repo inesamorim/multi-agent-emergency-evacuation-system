@@ -69,7 +69,7 @@ class BMSAgent(Agent):
         
         
 
-    class HelpWithOccupantsRoute(CyclicBehaviour):
+    """class HelpWithOccupantsRoute(CyclicBehaviour):
         async def run(self):
             preferences = {}
             num_occupants = len(self.agent.environment.get_all_occupants_loc())
@@ -137,7 +137,7 @@ class BMSAgent(Agent):
 
             
             await self.send(msg)
-            
+            """
         
     class Path_Throu_Building(CyclicBehaviour): #   ?help needed?
 
