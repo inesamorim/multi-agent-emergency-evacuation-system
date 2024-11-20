@@ -19,7 +19,7 @@ async def main():
     interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
     interface_thread.start()
 
-    await asyncio.sleep(40) #let interface load
+    await asyncio.sleep(60) #let interface load
     
     async def enqueue_agent(agent):
         await agent.start(auto_register=True)

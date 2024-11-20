@@ -188,7 +188,7 @@ class ERAgent(Agent):
                 print("====================================================")
                 print(f"Firefighter {self.agent.jid} is checking for fires")
                 print("====================================================")
-                self.kill_that_fire()
+                await self.kill_that_fire()
             if self.agent.occupants != {}:
                 print(f"ER agent {self.agent.jid} is starting jobs...\n {self.agent.occupants}")
             while(self.agent.occupants != {}):
@@ -334,14 +334,14 @@ class ERAgent(Agent):
                 x, y, _ = current
                 neighbors = self.astar_possible_moves(x, y) #where he can walk to(they are poss moves)
                 for nx, ny, nz in neighbors:
-                    obstacle = self.evaluate_fire(nx, ny, nz)
+                    #obstacle = self.evaluate_fire(nx, ny, nz)
 
                     # Calculate movement cost based on the obstacle
                     move_cost = 1
-                    if obstacle <= 9: #small_fire <= 9 blocks
-                        move_cost += obstacle*2  # Add a penalty for moving into fire (size of fire influences)
-                    else:
-                        continue  # Skip large fire entirely
+                    #if obstacle <= 9: #small_fire <= 9 blocks
+                     #   move_cost += obstacle*2  # Add a penalty for moving into fire (size of fire influences)
+                    #else:
+                     #   continue  # Skip large fire entirely
 
                     tentative_g_score = g_score[current] + move_cost
                     if tentative_g_score < g_score.get((nx, ny), float('inf')):
@@ -490,10 +490,10 @@ class ERAgent(Agent):
                             f = True
                             x1 = x 
                             y1 = y
-                            break
+                            return x1, y1, f
             return x1, y1, f
 
-        def kill_that_fire(self):
+        async def kill_that_fire(self):
             '''
             se no andar sponar fogo o ff vai lá apagá-lo
             vê onde está o fogo no andar 
@@ -503,18 +503,71 @@ class ERAgent(Agent):
             o path já apaga parte do fo
             '''
             x1, y1, z = self.agent.environment.er_loc[str(self.agent.jid)]
+            grid = self.agent.environment.get_grid(z)
             x, y, f = self.get_that_fire() 
             if f:
                 print(f"Firefighter {self.agent.jid} found a fire in position {(x,y,z)}")
-                while [x, y] != [x1, y1]:
-                    self.find_path([x, y, z])
-                    x, y = self.get_that_fire()
+                x1,y1 = self.move_to_target((x,y))
+                if str(self.agent.jid) in self.agent.environment.er_loc.keys():
+                    self.agent.environment.update_er_position(self.agent.jid, x1, y1, z)
+                    print(f"Firefighter {self.agent.jid} moved to position {(x1,y1,z)}")
+                    #x, y, f = self.get_that_fire()
+                    await asyncio.sleep(2)
+
+                x_around = [x1-1,x1,x1+1]
+                y_around = [y1-1,y1,y1+1]
+                self.agent.environment.update_er_position(self.agent.jid, x1, y1, z)
+
+                for i in x_around:
+                    for j in y_around:
+                        if i == x and j == y:
+                            pass
+                        if grid[i][j] == 5:
+                            self.agent.environment.building[z][i][j] = 0
+                            print(f"Successfully extinguished fire in position {(i,j)}") 
+                            self.agent.environment.obstacles.pop((i,j,z))
+
 
                 print(f"Successfully extinguished fire in position {(x,y)}") 
             else:
                 print(f"Firefighter {self.agent.jid} did not found fires")
 
             return 
+        
+        def move_to_target(self, target):
+            #target: x, y
+            x_self, y_self, z = self.agent.environment.er_loc[str(self.agent.jid)]
+            grid = self.agent.environment.get_grid(z)
+            
+            x = target[0]
+            y = target[1]
+            print(grid[x][y])
+            x1 = [x-1,x-1,x-x+1,x+2]
+            y1 = [y-1,y-1,y-y+1,y+2]
+
+            min_dist = np.sqrt((x-x_self)**2+(y-y_self)**2)
+            best_pos = (x_self, y_self)
+            for i in x1:
+                for j in y1:
+                    if self.is_possible_move(i,j,grid):
+                        dist = np.sqrt((i-x)**2+(j-y)**2)
+                        if dist <= min_dist:
+                            min_dist = dist
+                            best_pos = (i,j)
+            return best_pos
+                            
+        def is_possible_move(self, x, y, grid) -> bool:
+            if x < 0 or y < 0 or x >= len(grid[0]) or y >= len(grid[0]):
+                #fora da grid
+                return False
+            
+            if grid[x][y] == 5: return True
+            
+            if grid[x][y] != 0 and grid[x][y] != 6 and grid[x][y] != 3 and grid[x][y] != 5: 
+                #obstaculo
+                return False
+            return True
+            
 
         async def save_stairs(self, extinguish_limit=4, time_period=2 ):
             '''
