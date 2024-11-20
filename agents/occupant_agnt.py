@@ -485,7 +485,7 @@ class OccupantAgent(Agent):
             
             open_set = []
             x, y, _ = self.environment.get_occupant_loc(self.agent.jid)
-            position = [x, y]
+            position = (x, y)
             heapq.heappush(open_set, (0, position))  # Priority queue with (cost, position)
             came_from = {}
             g_score = {position: 0}
@@ -507,13 +507,14 @@ class OccupantAgent(Agent):
                 for nx, ny in neighbors:
                     tentative_g_score = g_score[current] + 1
                     if tentative_g_score < g_score.get((nx, ny), float('inf')):
-                        came_from[[nx, ny]] = current
-                        g_score[[nx, ny]] = tentative_g_score
-                        f_score[[nx, ny]] = tentative_g_score + self.heuristic([nx, ny], target)
+                        came_from[(nx, ny)] = current
+                        g_score[(nx, ny)] = tentative_g_score
+                        f_score[(nx, ny)] = tentative_g_score + self.heuristic((nx, ny), target)
 
                         # Avoid duplicates in the open_set
-                        if [nx, ny] not in f_score:
-                            heapq.heappush(open_set, (f_score[[nx, ny]], [nx, ny]))
+                        if (nx, ny) not in [pos for _, pos in open_set]:
+                            heapq.heappush(open_set, (f_score[(nx, ny)], (nx, ny)))
+                            #heapq.heappush(open_set, (f_score[[nx, ny]], [nx, ny]))
 
             return None  # No path found
 
