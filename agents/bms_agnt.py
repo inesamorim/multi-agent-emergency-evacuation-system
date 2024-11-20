@@ -67,79 +67,12 @@ class BMSAgent(Agent):
         def receive_building_plan(self):
             return self.agent.environment.send_plan_to_bms()
         
-        
-
-    """class HelpWithOccupantsRoute(CyclicBehaviour):
-        async def run(self):
-            preferences = {}
-            num_occupants = len(self.agent.environment.get_all_occupants_loc())
-
-            if(num_occupants == 0):
-                print("All occupants left safely or are dead")
-                end_time = datetime.now()
-                print("###################### STATS ######################")
-                print(f"Evacuation took {end_time - self.agent.environment.start_time}")
-                print(f"Occupants Saved: {self.agent.environment.occupants_saved}")
-                print(f"Dead Occupants: {self.agent.environment.occupants_dead}")
-                #await stop_agents()
-
-            while len(preferences) < num_occupants:
-                msg = await self.receive(timeout=5)
-                if msg:
-                    # Extrai o occupant_id e a lista de preferências da mensagem
-                    content = msg.body
-                    occupant_id = content.split(";")[0].split(":")[-1].strip()
-                    hierarchy_str = content.split(";")[-1].split(":")[-1].strip()
-                    hierarchy = ast.literal_eval(hierarchy_str)
-            
-                    # Armazena a lista de preferências no dicionário
-                    preferences[occupant_id] = hierarchy
-                else:
-                    print("BMS didn't receive any messages")
-                    break
-
-
-            
-            # Faz uma cópia profunda da grid
-            grid_copy = copy.deepcopy(self.agent.environment.get_building())
-
-            # Realiza lógica para determinar o próximo movimento com base nas preferências
-            await self.process_moves(preferences, grid_copy)
-        
-            await asyncio.sleep(2)
-
-        async def process_moves(self, preferences, grid_copy):
-
-            final_positions = {}
-            occupied_positions = set() #keep up with occupied positions
-
-            for occupant_id, hierarchy in preferences.items():
-                hierarchy = hierarchy[0]
-                #print(f"hierarchy: {hierarchy}")
-                for preferred_move in hierarchy:
-                    #check if its available
-                    if preferred_move not in occupied_positions:
-                        final_positions[occupant_id] = preferred_move
-                        occupied_positions.add(preferred_move)
-                        break
-                    else:
-                        final_positions[occupant_id] = None
-            
-            #Send new positions to occupants
-            for occupant_id, position in final_positions.items():
-                await self.send_move_instruction(occupant_id, position)
-
-        async def send_move_instruction(self, occupant_id, position):
-            msg = Message(to=occupant_id)
-            msg.set_metadata("performative", "inform")
-            if position:
-                msg.body = f"new position: {position}"
-
-            
-            await self.send(msg)
-            """
-        
-    class Path_Throu_Building(CyclicBehaviour): #   ?help needed?
+ 
+#------------------------------------------------------------------------------------------------------------#
+#-----------------------------------------------Not Used-----------------------------------------------------#
+#------------------------------------------------------------------------------------------------------------#
+       
+    class Path_Throu_Building(CyclicBehaviour):
 
         async def run(self):
             ''' 
@@ -334,5 +267,3 @@ class BMSAgent(Agent):
                         num_type2_responders -= 1
             return 
             
-
-#TODO: Check for disasters
