@@ -124,7 +124,7 @@ class ERAgent(Agent):
                         er_id = f"eragent{j}@localhost"
                         if i == j:
                             self.agent.environment.update_er_role(er_id, True)
-                            print(self.agent.environment.er_role[str(er_id)])
+                            #print(self.agent.environment.er_role[str(er_id)])
                             print(f"ER agent {er_id} is assigned captain of floor {z}")
                         floor = z
                         self.agent.floor_alocated = floor
@@ -225,8 +225,10 @@ class ERAgent(Agent):
             grid = self.agent.environment.get_grid(z)
 
             #se obstacle != 'fire'
-            if self.agent.environment.obstacles_type[x, y, z] != 'fire':
-                return 20 #no diff between large_fire and normal obstacle
+            #print(self.agent.environment.obstacles)
+            if (x, y, z) in self.agent.environment.obstacles.keys():
+                if self.agent.environment.obstacles[(x, y, z)] != 'fire':
+                    return 20 #no diff between large_fire and normal obstacle
             
 
             rows, cols = len(grid), len(grid[0])
@@ -242,16 +244,16 @@ class ERAgent(Agent):
                     continue
 
                 visited.add((cx, cy))
+                if (cx,cy,z) in self.agent.environment.obstacles.keys():
+                    if self.agent.environment.obstacles[(cx,cy,z)] == 'fire':
+                        fire_count += 1
+                        fire_blocks.append((cx, cy))  # Add position to extinguish list
 
-                if self.environment.obstacles[cx][cy] == 'fire':
-                    fire_count += 1
-                    fire_blocks.append((cx, cy))  # Add position to extinguish list
-
-                    # Explore neighbors
-                    for nx, ny in [(cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1),
-                                   (cx+1, cy+1), (cx+1, cy-1), (cx-1, cy+1), (cx-1, cy-1)]:
-                        if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited:
-                            stack.append((nx, ny))
+                        # Explore neighbors
+                        for nx, ny in [(cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1),
+                                    (cx+1, cy+1), (cx+1, cy-1), (cx-1, cy+1), (cx-1, cy-1)]:
+                            if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited:
+                                stack.append((nx, ny))
 
             # Extinguish fire if the count is within the threshold and ER wannna go that way 
             if fire_count <= max_fire_threshold:
@@ -270,8 +272,8 @@ class ERAgent(Agent):
         
 
         def astar_possible_moves(self, x, y):
-            _,_,z = self.agent.environment.get_occupant_loc(self.agent.jid)
-            grid_z = self.agent.environment.get_grid(z) #no futuro alterar para BMS.get_floor(z) ->return grid
+            _,_,z = self.agent.environment.get_er_loc(self.agent.jid)
+            grid_z = self.agent.environment.get_grid(z)
             
             ''' 
                 1->portas 
@@ -288,7 +290,7 @@ class ERAgent(Agent):
             for i in range(5):
                 for j in range(5):
                     if self.is_valid_move(x1[i],y1[j], z, grid_z):
-                        possible_moves.append((x1[i], y1[j], self.agent.floor))
+                        possible_moves.append((x1[i], y1[j], z))
 
             return possible_moves
 
@@ -314,7 +316,7 @@ class ERAgent(Agent):
         def find_path(self, target):
             # A* algorithm with modifications for two-step movement
             open_set = []
-            position = self.agent.environment.get_er_loc(self.agent.jid)
+            position = self.agent.environment.get_er_loc(self.agent.jid) #x,y,z
             heapq.heappush(open_set, (0, position))  # Priority queue with (cost, position)
             came_from = {}
             g_score = {position: 0}
@@ -331,8 +333,8 @@ class ERAgent(Agent):
 
                 x, y, _ = current
                 neighbors = self.astar_possible_moves(x, y) #where he can walk to(they are poss moves)
-                for nx, ny in neighbors:
-                    obstacle = self.evaluate_fire(x, y)
+                for nx, ny, nz in neighbors:
+                    obstacle = self.evaluate_fire(nx, ny, nz)
 
                     # Calculate movement cost based on the obstacle
                     move_cost = 1
@@ -343,13 +345,13 @@ class ERAgent(Agent):
 
                     tentative_g_score = g_score[current] + move_cost
                     if tentative_g_score < g_score.get((nx, ny), float('inf')):
-                        came_from[(nx, ny)] = current
-                        g_score[(nx, ny)] = tentative_g_score
-                        f_score[(nx, ny)] = tentative_g_score + self.heuristic((nx, ny), target)
+                        came_from[(nx, ny, nz)] = current
+                        g_score[(nx, ny, nz)] = tentative_g_score
+                        f_score[(nx, ny, nz)] = tentative_g_score + self.heuristic((nx, ny), target)
 
                         # Avoid duplicates in the open_set
                         if (nx, ny) not in f_score:
-                            heapq.heappush(open_set, (f_score[(nx, ny)], (nx, ny)))
+                            heapq.heappush(open_set, (f_score[(nx, ny, nz)], (nx, ny, nz)))
 
             return None  # No path found
 
@@ -476,9 +478,9 @@ class ERAgent(Agent):
         def get_that_fire(self):
             f = False
             x1, y1, z = self.agent.environment.er_loc[str(self.agent.jid)]
-            print(x1,y1,z)
+            #print(x1,y1,z)
             grid = self.agent.environment.get_grid(z)
-            print(grid)
+            #print(grid)
             rows, cols = len(grid), len(grid[0])
 
             for x in range(rows):
@@ -502,13 +504,15 @@ class ERAgent(Agent):
             '''
             x1, y1, z = self.agent.environment.er_loc[str(self.agent.jid)]
             x, y, f = self.get_that_fire() 
-            print()
-            print(f"Firefighter {self.agent.jid} found a fire in position {(x,y,z)}")
-            while [x, y] != [x1, y1]:
-                self.find_path([x, y, z])
-                x, y = self.get_that_fire()
+            if f:
+                print(f"Firefighter {self.agent.jid} found a fire in position {(x,y,z)}")
+                while [x, y] != [x1, y1]:
+                    self.find_path([x, y, z])
+                    x, y = self.get_that_fire()
 
-            print(f"Successfully extinguished fire in position {(x,y)}") 
+                print(f"Successfully extinguished fire in position {(x,y)}") 
+            else:
+                print(f"Firefighter {self.agent.jid} did not found fires")
 
             return 
 
@@ -555,46 +559,47 @@ class ERAgent(Agent):
 
     class SaveThroughWindow(CyclicBehaviour):
         async def run(self):
-            if self.agent.environment.er_loc[str(self.agent.jid)] == (-1,-1,-1) and str(self.agent.jid) == 'eragent0@localhost':
-                msg = await self.receive(timeout=10)
-                if msg:
-                    print(f"ER Agent {self.agent.jid} received message from {msg.sender}")
-                    if "We need stairs" in msg.body:
-                        parts = msg.body.split('.')
-                        floor = int(parts[0].split(':')[1].strip())
-                        people_to_save = parts[1].split(';')
-                        num_people = int(people_to_save[0].split(':')[1].strip())
-                        raw_occupants = people_to_save[1].strip()
-                        try:
-                            occupants = ast.literal_eval(raw_occupants)
-                            print(occupants)
-                        except (SyntaxError, ValueError) as e:
-                            print("Erro ao interpretar a lista:", e)
-                            occupants = []
-                        
-                        self.agent.tasks.append((floor, num_people, occupants))
-                    print("========================================================================================================")
-                    print(f"ER Agent {self.agent.jid} is outside ready to start helping with firefighter's stairs\nTasks: {self.agent.tasks}")
-                    print("========================================================================================================")
-                    if not self.agent.busy:
-                        while self.agent.tasks != []:
-                            task = self.agent.tasks.pop(0)
-                            if task:
-                                floor = task[0]
-                                num_people = task[1]
-                                occupants = task[2]
-                                print(f"ER Agent {self.agent.jid} is now helping people on floor {floor}")
-                                while num_people != 0:
-                                    occ_id = occupants.pop(0)
-                                    if str(occ_id) in self.agent.environment.occupants_loc.keys():
-                                        print(f"Saving {occ_id}...")
-                                        msg = Message(to=str(occ_id))
-                                        msg.body = "You can come to the window"
-                                        await self.send(msg)
-                                        await asyncio.sleep(2)
-                                        num_people -= 1
-                                    else:
-                                        print(f"Occupant {occ_id} already died")
+            if str(self.agent.jid) in self.agent.environment.er_loc.keys():
+                if self.agent.environment.er_loc[str(self.agent.jid)] == (-1,-1,-1) and str(self.agent.jid) == 'eragent0@localhost':
+                    msg = await self.receive(timeout=10)
+                    if msg:
+                        print(f"ER Agent {self.agent.jid} received message from {msg.sender}")
+                        if "We need stairs" in msg.body:
+                            parts = msg.body.split('.')
+                            floor = int(parts[0].split(':')[1].strip())
+                            people_to_save = parts[1].split(';')
+                            num_people = int(people_to_save[0].split(':')[1].strip())
+                            raw_occupants = people_to_save[1].strip()
+                            try:
+                                occupants = ast.literal_eval(raw_occupants)
+                                print(occupants)
+                            except (SyntaxError, ValueError) as e:
+                                print("Erro ao interpretar a lista:", e)
+                                occupants = []
+                            
+                            self.agent.tasks.append((floor, num_people, occupants))
+                        print("========================================================================================================")
+                        print(f"ER Agent {self.agent.jid} is outside ready to start helping with firefighter's stairs\nTasks: {self.agent.tasks}")
+                        print("========================================================================================================")
+                        if not self.agent.busy:
+                            while self.agent.tasks != []:
+                                task = self.agent.tasks.pop(0)
+                                if task:
+                                    floor = task[0]
+                                    num_people = task[1]
+                                    occupants = task[2]
+                                    print(f"ER Agent {self.agent.jid} is now helping people on floor {floor}")
+                                    while num_people != 0:
+                                        occ_id = occupants.pop(0)
+                                        if str(occ_id) in self.agent.environment.occupants_loc.keys():
+                                            print(f"Saving {occ_id}...")
+                                            msg = Message(to=str(occ_id))
+                                            msg.body = "You can come to the window"
+                                            await self.send(msg)
+                                            await asyncio.sleep(2)
+                                            num_people -= 1
+                                        else:
+                                            print(f"Occupant {occ_id} already died or escaped")
 
             await asyncio.sleep(3)
 
@@ -834,18 +839,19 @@ class ERAgent(Agent):
         async def ask_health_state(self):
             num_occupants = self.agent.environment.num_occupants
             #captain asks for health state of the occupants in the same floor as him
-            z_cap = self.agent.environment.er_loc[str(self.agent.jid)][2]
-            for i in range(num_occupants):
-                id = f"occupant{i}@localhost"
-                if str(id) in self.agent.environment.occupants_loc.keys():
-                    z_occ = self.agent.environment.occupants_loc[str(id)][2]
-                    if z_cap == z_occ:
-                        print(f"Captain {self.agent.jid} is sending message to {id}")
-                        msg = Message(to=f"occupant{i}@localhost")
-                        msg.set_metadata("performative", "informative")
-                        msg.body = "[ER] Please give me information on your health state"
+            if str(self.agent.jid) in self.agent.environment.er_loc.keys():
+                z_cap = self.agent.environment.er_loc[str(self.agent.jid)][2]
+                for i in range(num_occupants):
+                    id = f"occupant{i}@localhost"
+                    if str(id) in self.agent.environment.occupants_loc.keys():
+                        z_occ = self.agent.environment.occupants_loc[str(id)][2]
+                        if z_cap == z_occ:
+                            print(f"Captain {self.agent.jid} is sending message to {id}")
+                            msg = Message(to=f"occupant{i}@localhost")
+                            msg.set_metadata("performative", "informative")
+                            msg.body = "[ER] Please give me information on your health state"
 
-                        await self.send(msg)
+                            await self.send(msg)
 
         async def receive_health_state(self, to_help_list):
             '''
@@ -903,13 +909,13 @@ class ERAgent(Agent):
             for exit in self.agent.environment.get_exit_loc(floor):
                 x = exit[0]
                 y = exit[1]
-                if grid[x][y] == 6:
+                if grid[x][y] == 6 and self.agent.environment.exits_state[(x,y,floor)] == 'open':
                     return True
             for stairs in self.agent.environment.stairs_locations:
                 x = stairs[0]
                 y = stairs[1]
                 z = stairs[2]
-                if (grid[x][y] == 3 and z == floor):
+                if (grid[x][y] == 3 and z == floor and z-1 != -1):
                     if (building[z-1][x][y] == 3):
                         return True
             return False
@@ -941,11 +947,12 @@ class ERAgent(Agent):
             _, _, z = self.agent.environment.get_er_loc(self.agent.jid)
             dic = self.agent.environment.get_all_er_types()
             for agent in dic.keys():
-                # dic -> id: type
-                type = dic[str(agent)]
-                er_pos = self.agent.environment.get_er_loc(agent)
-                if er_pos[2] == z:
-                    team.append((agent, type))
+                if str(agent) in self.agent.environment.er_loc.keys():
+                    # dic -> id: type
+                    type = dic[str(agent)]
+                    er_pos = self.agent.environment.get_er_loc(agent)
+                    if er_pos[2] == z:
+                        team.append((agent, type))
 
             return team
 

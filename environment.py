@@ -53,7 +53,7 @@ class Environment:
         self.exit_loc = [(0,0,0)]
         for x, y, z in self.exit_loc:
             self.building[z][x][y] = 6
-        self.exits_state = {(0,0,0): 'open'}
+        self.exits_state = {(0,0,0): 'closed'}
         
         #ELEVATOR INFO
         self.elevator = 'on'
