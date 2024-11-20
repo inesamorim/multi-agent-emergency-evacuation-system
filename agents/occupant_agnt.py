@@ -497,8 +497,8 @@ class OccupantAgent(Agent):
                 # Target reached
                 if current == target:  
                     #o occ guarda o caminho q quer fazer 
-                    self.path = self.reconstruct_path(came_from, current)
-                    return self.path
+                    path = self.reconstruct_path(came_from, current)
+                    return path[0] if path else None  
 
 
 
