@@ -57,7 +57,7 @@ class ERAgent(Agent):
             msg = await self.receive(timeout=10)
             if msg:
                 print(f"ER Agent {self.agent.type} {self.agent.jid} received message from BMS and is coming to the rescue...")
-                await asyncio.sleep(10)
+                await asyncio.sleep(5)
                 print("#####################################################")
                 print(f"ER Agent {self.agent.jid} has arrived to the scene")
                 self.agent.busy = False
@@ -183,6 +183,12 @@ class ERAgent(Agent):
                             else ver piso mais proximo que possa criar saida(o BMS é informado imediatamente e oprocesso
                             de tornar a janela em saida começa enquanto o ER se move para lá)
             '''
+
+            if self.agent.environment.er_type[str(self.agent.jid)] == 'firefighter' and self.agent.environment.er_loc[str(self.agent.jid)] != (-1,-1,-1):
+                print("====================================================")
+                print(f"Firefighter {self.agent.jid} is checking for fires")
+                print("====================================================")
+                self.kill_that_fire()
             if self.agent.occupants != {}:
                 print(f"ER agent {self.agent.jid} is starting jobs...\n {self.agent.occupants}")
             while(self.agent.occupants != {}):
@@ -202,7 +208,7 @@ class ERAgent(Agent):
                     x, y, z = self.agent.environment.er_loc[str(self.agent.jid)]
                     self.agent.environment.er_loc.pop(str(self.agent.jid))
                     self.agent.environment.building[z][x][y] = 0
-                    self.agent.stop()
+                    await self.agent.stop()
 
             await asyncio.sleep(5)
 
@@ -323,7 +329,7 @@ class ERAgent(Agent):
                     self.path = self.reconstruct_path(came_from, current)
                     return self.path
 
-                x, y = current
+                x, y, _ = current
                 neighbors = self.astar_possible_moves(x, y) #where he can walk to(they are poss moves)
                 for nx, ny in neighbors:
                     obstacle = self.evaluate_fire(x, y)
@@ -377,6 +383,33 @@ class ERAgent(Agent):
             """Main method for the ER agent to take an action."""
             next_position = self.find_next_position(target)
             self.move_to_position(next_position)
+
+        def heuristic(self, a, b):
+            """
+            ?Euclidean? distance heuristic for grid navigation.
+            """
+            return np.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
+
+        def reconstruct_path(self, came_from, current):
+            """
+            Reconstructs the path from start to target.
+
+            exp:
+            came_from = {
+                (C): (B),
+                (B): (A),
+                (A): (start)
+            }
+
+            chamado pela find_path para dar o caminho esperado
+            """
+            path = []
+            while current in came_from:
+                path.append(current)
+                current = came_from[current]
+            path.reverse()
+            return path
+
 
 
         #------------------------------------------------------------------------------------#
@@ -440,20 +473,25 @@ class ERAgent(Agent):
         #------------------------------------------------------------------------------------#
         #------------------------------------------------------------------------------------#
         #------------------------funções dos ff e talvez paramed-----------------------------#
-        async def get_that_fire(self):
+        def get_that_fire(self):
+            f = False
             x1, y1, z = self.agent.environment.er_loc[str(self.agent.jid)]
+            print(x1,y1,z)
             grid = self.agent.environment.get_grid(z)
+            print(grid)
             rows, cols = len(grid), len(grid[0])
 
-            for x in rows:
-                for y in cols:
+            for x in range(rows):
+                for y in range(cols):
                     if grid[x][y] == 5:
-                        if self.agent.environment.obstacles[(x, y)] == "fire":
-                            x1 = x, y1 = y
+                        if self.agent.environment.obstacles[(x,y,z)] == "fire":
+                            f = True
+                            x1 = x 
+                            y1 = y
                             break
-            return x1, y1
+            return x1, y1, f
 
-        async def kill_that_fire(self):
+        def kill_that_fire(self):
             '''
             se no andar sponar fogo o ff vai lá apagá-lo
             vê onde está o fogo no andar 
@@ -463,10 +501,14 @@ class ERAgent(Agent):
             o path já apaga parte do fo
             '''
             x1, y1, z = self.agent.environment.er_loc[str(self.agent.jid)]
-            x, y = self.get_that_fire() 
+            x, y, f = self.get_that_fire() 
+            print()
+            print(f"Firefighter {self.agent.jid} found a fire in position {(x,y,z)}")
             while [x, y] != [x1, y1]:
                 self.find_path([x, y, z])
                 x, y = self.get_that_fire()
+
+            print(f"Successfully extinguished fire in position {(x,y)}") 
 
             return 
 
@@ -727,7 +769,7 @@ class ERAgent(Agent):
                 team = self.get_team()
                 self.its_hero_time(team, self.agent.to_help_list)
 
-                print(self.agent.environment.er_role)
+                #print(self.agent.environment.er_role)
                 z = self.agent.environment.er_loc[str(self.agent.jid)][2]
 
                 #check for people to save
@@ -812,43 +854,44 @@ class ERAgent(Agent):
             msg = await self.receive(timeout=10)  # Wait for a message with a 10-second timeout
 
             if msg:
-                print(f"Captain {self.agent.jid} received health check from {msg.sender}")
-                # Assuming msg.body contains the message text
-                content = msg.body 
+                if "My position is" in msg.body:
+                    print(f"Captain {self.agent.jid} received health check from {msg.sender}")
+                    # Assuming msg.body contains the message text
+                    content = msg.body 
 
-                # Split the message by semicolons to isolate sections
-                parts = content.split(";")
+                    # Split the message by semicolons to isolate sections
+                    parts = content.split(";")
 
-                try:
-                    # Extract `id`
-                    id_part = parts[0].split(":")[1].strip()
+                    try:
+                        # Extract `id`
+                        id_part = parts[0].split(":")[1].strip()
 
-                    # Extract `position` (x, y, z) - splitting by `:` and `,`
-                    position_part = parts[1].split(":")[1].strip()
-                    x, y, z = map(int, position_part.strip("()").split(","))
+                        # Extract `position` (x, y, z) - splitting by `:` and `,`
+                        position_part = parts[1].split(":")[1].strip()
+                        x, y, z = map(int, position_part.strip("()").split(","))
 
-                    # Extract `health state`
-                    health_state_part = parts[2].split(":")[1].strip()
-                    health_state = int(health_state_part)
+                        # Extract `health state`
+                        health_state_part = parts[2].split(":")[1].strip()
+                        health_state = int(health_state_part)
 
-                    # Create the array with agent data
-                    occ = [id_part, health_state, x, y, z]
+                        # Create the array with agent data
+                        occ = [id_part, health_state, x, y, z]
 
-                    print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
-                    if occ[1] < 2:
-                        #0: can't move
-                        to_help_list.append(occ)
-                    #atualizar env
-                    self.agent.environment.er_occ_status[str(occ[0])] = occ[1:]
+                        print(f"Agent data Received by ER Agent:\n - Id: {occ[0]};\n - Health State: {occ[1]};\n - Position:{occ[2],occ[3],occ[4]}")
+                        if occ[1] < 2:
+                            #0: can't move
+                            to_help_list.append(occ)
+                        #atualizar env
+                        self.agent.environment.er_occ_status[str(occ[0])] = occ[1:]
 
-                    """if health_state==1: #agent é curável
-                        cure_behaviour = self.Cure(occ, to_help_list)
-                        self.agent.add_behaviour(cure_behaviour)"""
+                        """if health_state==1: #agent é curável
+                            cure_behaviour = self.Cure(occ, to_help_list)
+                            self.agent.add_behaviour(cure_behaviour)"""
 
-                except IndexError as e:
-                    print("Failed to parse message. Make sure the message format is correct:", e)
-                except ValueError as e:
-                    print("Failed to convert data to integers. Check the data format:", e)
+                    except IndexError as e:
+                        print("Failed to parse message. Make sure the message format is correct:", e)
+                    except ValueError as e:
+                        print("Failed to convert data to integers. Check the data format:", e)
 
             else:
                 print(f"ER Agent {self.agent.jid} did not receive any messages")

@@ -67,7 +67,8 @@ class Environment:
             id = f"occupant{i}@localhost"
             pos = random.choice(available_positions)
             self.occupants_loc[str(id)] = pos
-            self.occupants_health[str(id)] = random.randint(1,2)
+            self.occupants_health[str(id)] = 1
+            #self.occupants_health[str(id)] = random.randint(1,2)
             available_positions.remove(pos)
 
         """       

@@ -12,14 +12,14 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(grid_size=15,num_floors=8, num_occupants=50)
+    environment = Environment(grid_size=10,num_floors=8, num_occupants=500)
     #await asyncio.sleep(10)
 
     #start user interface
     interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
     interface_thread.start()
 
-    await asyncio.sleep(5) #let interface load
+    await asyncio.sleep(40) #let interface load
     
     async def enqueue_agent(agent):
         await agent.start(auto_register=True)
@@ -61,8 +61,9 @@ async def main():
     print("\n")
 
     async def make_disasters():
-        disaster = random.choice(environment.obstacles_type)
+        #disaster = random.choice(environment.obstacles_type)
         positions = environment.get_available_positions()
+        disaster = 'fire'
         if disaster == 'fire':
             #firefighters can passthough, we add it to the grid
             pos = random.choice(positions)
@@ -169,7 +170,7 @@ async def main():
         #await asyncio.sleep(0.5)
 
     behaviours.append(building_agent.add_behaviour(building_agent.ReceiveBuildingPlan()))
-    behaviours.append(building_agent.add_behaviour(building_agent.HelpWithOccupantsRoute()))
+    #behaviours.append(building_agent.add_behaviour(building_agent.HelpWithOccupantsRoute()))
 
 
     #TODO: Check Health
@@ -194,7 +195,7 @@ async def main():
     while True:
         await manage_disasters()
         await make_disasters()
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
     
 
 
