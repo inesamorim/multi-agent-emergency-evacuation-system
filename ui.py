@@ -104,9 +104,7 @@ class BuildingInterface:
                     label = self.grid_labels[z][x][y]
                     color = "white"
                     text = " "
-                    if value == 1:
-                        label.config(text= "🚪")  # Door
-                    elif value == 2:
+                    if value == 2:
                         color = 'pink'   # Window
                         text = " "
                     elif value == 3:

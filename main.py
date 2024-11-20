@@ -12,14 +12,13 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(grid_size=20,num_floors=2, num_occupants=10)
-    #await asyncio.sleep(10)
+    environment = Environment(grid_size=15, num_floors=8, num_occupants=100)
 
     #start user interface
     interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
     interface_thread.start()
 
-    await asyncio.sleep(60) #let interface load
+    await asyncio.sleep(40) #let interface load
     
     async def enqueue_agent(agent):
         await agent.start(auto_register=True)
@@ -34,8 +33,6 @@ async def main():
         #occupants.append(occupant_agent)
         await enqueue_agent(occupant_agent)
 
-    
-
     #Start ER Agents 
     er_agents = []
     num_er = environment.num_er
@@ -46,18 +43,15 @@ async def main():
         er_agents.append(er_agent)
         await enqueue_agent(er_agent)
 
-
-     # Start the Building Agent
+    # Start the Building Agent
     building_agent = bms_agnt.BMSAgent("building@localhost", "password", environment)
     await enqueue_agent(building_agent)
+
     print("\n")
-    
-    
     print("#####################################################################")
     environment.start_time = datetime.now()
     print(f"All agents created. Starting simulation at {environment.start_time}")
     print("#####################################################################")
-
     print("\n")
 
     async def make_disasters():

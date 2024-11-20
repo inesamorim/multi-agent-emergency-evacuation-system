@@ -23,12 +23,6 @@ class Environment:
         self.occupants_dead = 0
 
 
-        #DOORS INFO
-        self.doors_locations = [(0,4,0),(9,7,0)]
-        for x, y, z in self.doors_locations:
-            self.building[z][x][y] = 1             
-        self.doors_state = {"Door 0": 'open',
-                            "Door 1": 'closed'}
         
         #WINDOWS INFO
         self.windows_locations = []
@@ -53,11 +47,8 @@ class Environment:
         self.exit_loc = [(0,0,0)]
         for x, y, z in self.exit_loc:
             self.building[z][x][y] = 6
-        self.exits_state = {(0,0,0): 'closed'}
+        self.exits_state = {(0,0,0): 'open'}
         
-        #ELEVATOR INFO
-        self.elevator = 'on'
-
 
         #OCCUPANTS INFO
         self.occupants_loc = {}
@@ -67,9 +58,14 @@ class Environment:
             id = f"occupant{i}@localhost"
             pos = random.choice(available_positions)
             self.occupants_loc[str(id)] = pos
-            self.occupants_health[str(id)] = 1
-            #self.occupants_health[str(id)] = random.randint(1,2)
+            #self.occupants_health[str(id)] = 1
+            #self.occupants_health[str(id)] = random.randint(0,1)
+            self.occupants_health[str(id)] = random.randint(1,2)
             available_positions.remove(pos)
+            """if i < 75:
+                self.occupants_health[str(id)] = 0
+            else:
+                self.occupants_health[str(id)] = random.randint(1,2)"""
 
         """       
         -1 -> morto

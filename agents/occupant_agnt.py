@@ -8,7 +8,6 @@ import spade
 import numpy as np
 from spade.message import Message
 import ast
-###### BOB WAS HERE ######
 import heapq
 
 
@@ -21,7 +20,6 @@ class OccupantAgent(Agent):
         self.floor = self.environment.get_occupant_loc(self.jid)[2]
         self.elf = self.environment.get_occupant_state(self.jid)
         self.elf_bar = MAX_HEALTH    #quando chegar a 0 -> muda de nível 
-        ###### BOB WAS HERE ######
         self.path = []
 
     
@@ -44,6 +42,7 @@ class OccupantAgent(Agent):
 
 
     class  HOFAH(CyclicBehaviour):
+        #HOFAH -> holding out for a hero :)
         ''' 
         ER Agents ask for a health check and if the occupant is not dead or already saved,
         responds with is health state
@@ -176,7 +175,7 @@ class OccupantAgent(Agent):
                         y1 = [y-1,y,y+1]
                         for i in x1:
                             for j in y1:
-                                if (i != x or j != y):
+                                if (i != x or j != y) and (i,j,pos[2]) not in self.agent.environment.stairs_locations:
                                     new_pos = (i,j)
                                     if new_pos != -1 and self.is_possible_move(new_pos[0], new_pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys() and new_pos not in self.agent.environment.stairs_locations:
                                         print(f"Occupant {self.agent.jid} is moving to new position {pos}")
@@ -189,87 +188,7 @@ class OccupantAgent(Agent):
                     break
 
             await asyncio.sleep(3)
-            """msg = Message(to="building@localhost")
-            msg.set_metadata("performative", "informative")
-            msg.body = f"Occupant: {self.agent.jid}; Preferred Moves: {hierarchy}"
 
-            #await self.send(msg)
-
-            #response = await self.receive(timeout=10) 
-
-            if response:
-                if "new position" in response.body:
-                    await self.process_move(response.body)
-                elif "come to the window" in response.body:
-                    await self.go_to_window()
-            else:
-                print(f"Occupant {self.agent.jid} didn't move")
-
-            await asyncio.sleep(2)"""
-
-        """async def process_move(self, new_postition):
-            if new_postition != None:
-                if "new position" in new_postition:
-                    pos_str = new_postition.split(':')[-1].strip()
-                    pos = ast.literal_eval(pos_str)
-                    exits = self.agent.environment.get_all_exits_loc()
-                    stairs = self.agent.environment.stairs_locations
-                    windows = self.agent.environment.windows_locations
-                    grid = self.agent.environment.get_grid(pos[2])
-                    if pos in exits:
-                        #print(f"Occupant {self.agent.jid} is moving to new position {pos}")
-                        #leave building
-                        if self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                            self.agent.environment.leave_building(self.agent.jid)
-                            print(f"Occupant {self.agent.jid} left the building safely")
-                            await self.agent.stop()
-                    
-                    elif pos in stairs and pos[2]-1 != -1:
-                          #change floor
-                           if self.leavefloor(pos[2]-1, pos=pos) != []:
-                           grid = self.agent.environment.get_grid(pos[2]-1)
-                            new_pos = self.leavefloor(pos[2]-1, pos=pos)[0]
-                            #print(f"new_pos: {new_pos}")
-                            if self.is_possible_move(new_pos[0], new_pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys() and pos not in self.agent.environment.obstacles.keys():
-                                print(f"Occupant {self.agent.jid} is moving to floor {pos[2]-1} and heading to new position {new_pos}")
-                                self.agent.environment.update_occupant_position(self.agent.jid, *new_pos)
-                                self.agent.floor = new_pos[2]
-                        else:
-                            print(f"The stairs in floor {pos[2]-1} are blocked. Occupant {self.agent.jid} waiting to be saved through window")
-                    
-                    elif pos in stairs and pos[2]-1 == -1:
-                        new_pos = 0
-                        x = pos[0]
-                        y = pos[1]
-                        x1 = [x-1,x,x+1]
-                        y1 = [y-1,y,y+1]
-                        for i in x1:
-                            for j in y1:
-                                if (i != x or j != y):
-                                    new_pos = (i,j)
-                                    if new_pos != -1 and self.is_possible_move(new_pos[0], new_pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                                        print(f"Occupant {self.agent.jid} is moving to new position {pos}")
-                                        self.agent.environment.update_occupant_position(self.agent.jid, *pos)
-
-                    else:
-                        if self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                            print(f"Occupant {self.agent.jid} is moving to new position {pos}")
-                            self.agent.environment.update_occupant_position(self.agent.jid, *pos)
-
-
-                    elif pos in windows:
-                        print(f"Occupant {self.agent.jid} threw himself out the window in floor {pos[2]}")
-                        #TODO: check if he is alive
-                        self.agent.environment.occupants_loc.pop(str(self.agent.jid))
-                        self.agent.environemnt.occupants_saved += 1 #assuming he survived
-                        await self.agent.stop()
-
-
-                    
-
-                    #print(f"Occupant {self.agent.jid} is now in position {self.agent.environment.get_occupant_loc(self.agent.jid)}")
-            else:
-                print(f"Occupant {self.agent.jid} didn't move. New position is None")"""
 
         async def go_to_window(self):
             print(f"[Occupant {self.agent.jid}] Coming to the window...")
@@ -385,17 +304,19 @@ class OccupantAgent(Agent):
                 #obstaculo
                 return False
             
-            
-            occupant_state = self.agent.environment.get_occupant_state(self.agent.jid)
-            if str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                x1, y1, z = self.agent.environment.get_occupant_loc(self.agent.jid)
-            else:
+            if str(self.agent.jid) not  in self.agent.environment.occupants_loc.keys():
                 return False
-            if occupant_state == 0:
+            occupant_state = self.agent.environment.get_occupant_state(self.agent.jid)
+            x1, y1, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+        
+            if occupant_state == 1:
                 #cant move more than 1 step /cell
                 if np.sqrt((x-x1)**2) > 1 or np.sqrt((y-y1)**2) > 1:
                     return False
                 
+            if occupant_state == 0: 
+                    return False
+            
             return True
             
         def possible_moves(self):
