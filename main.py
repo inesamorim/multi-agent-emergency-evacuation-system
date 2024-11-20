@@ -12,13 +12,13 @@ def start_tkinter_interface(environment):
 
 async def main():
     # Create and initialize the environment
-    environment = Environment(grid_size=15, num_floors=8, num_occupants=100)
+    environment = Environment(grid_size=15, num_floors=3, num_occupants=20)
 
     #start user interface
     interface_thread = threading.Thread(target=start_tkinter_interface, args=(environment,))
     interface_thread.start()
 
-    await asyncio.sleep(40) #let interface load
+    await asyncio.sleep(10) #let interface load
     
     async def enqueue_agent(agent):
         await agent.start(auto_register=True)

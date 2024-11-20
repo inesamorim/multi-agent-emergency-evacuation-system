@@ -22,6 +22,8 @@ class Environment:
         self.occupants_saved = 0
         self.occupants_dead = 0
 
+        self.movement = 'astar' #can be: 'distance' or 'astar'
+
 
         
         #WINDOWS INFO
