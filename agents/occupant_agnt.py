@@ -79,16 +79,6 @@ class OccupantAgent(Agent):
                     #print(msg._to)
 
                 #i = 0
-            """ for id in er_agents_locs.keys():
-                    loc = er_agents_locs[str(id)]
-                    if loc[2] == z and self.agent.environment.er_role[str(id)]:
-                        #o captain desse floor recebe msg
-                        msg = Message(to=f"eragent{i}@localhost")
-                        msg.set_metadata("performative", "informative")
-                        msg.body = f"[Occupant] I am: {self.agent.jid}; My position is: {x,y,z}; My health state is: {self.agent.elf}"
-
-                        await self.send(msg)
-                    i += 1"""
         
         async def go_to_window(self):
             print(f"[Occupant {self.agent.jid}] Coming to the window...")
