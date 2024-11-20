@@ -388,10 +388,12 @@ class OccupantAgent(Agent):
             
             occupant_state = self.agent.environment.get_occupant_state(self.agent.jid)
             if str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                x1, y1, z = self.agent.environment.get_occupant_loc(self.agent.jid)
+                x1, y1, _ = self.agent.environment.get_occupant_loc(self.agent.jid)
             else:
                 return False
-            if occupant_state == 0:
+            if occupant_state <= 1:
+                if occupant_state == 0:
+                    return False
                 #cant move more than 1 step /cell
                 if np.sqrt((x-x1)**2) > 1 or np.sqrt((y-y1)**2) > 1:
                     return False
@@ -522,9 +524,9 @@ class OccupantAgent(Agent):
             possible_moves = []
             for i in range(5):
                 for j in range(5):
-                    if (i != 0 or j != 0) and (i!= 0 or j != 4) and (i != 4 or j != 0) and (i != 4 or j != 4):
+                    #if (i != 0 or j != 0) and (i!= 0 or j != 4) and (i != 4 or j != 0) and (i != 4 or j != 4):
                         if self.is_possible_move(x1[i],y1[j], grid_z):
-                            possible_moves.append((x1[i], y1[j], self.agent.floor))
+                            possible_moves.append([x1[i], y1[j]])
 
             return possible_moves
         
@@ -561,7 +563,8 @@ class OccupantAgent(Agent):
             """
             
             open_set = []
-            position = self.environment.get_occupant_loc(self.agent.jid)
+            x, y, _ = self.environment.get_occupant_loc(self.agent.jid)
+            position = [x, y]
             heapq.heappush(open_set, (0, position))  # Priority queue with (cost, position)
             came_from = {}
             g_score = {position: 0}
@@ -583,13 +586,13 @@ class OccupantAgent(Agent):
                 for nx, ny in neighbors:
                     tentative_g_score = g_score[current] + 1
                     if tentative_g_score < g_score.get((nx, ny), float('inf')):
-                        came_from[(nx, ny)] = current
-                        g_score[(nx, ny)] = tentative_g_score
-                        f_score[(nx, ny)] = tentative_g_score + self.heuristic((nx, ny), target)
+                        came_from[[nx, ny]] = current
+                        g_score[[nx, ny]] = tentative_g_score
+                        f_score[[nx, ny]] = tentative_g_score + self.heuristic([nx, ny], target)
 
                         # Avoid duplicates in the open_set
-                        if (nx, ny) not in f_score:
-                            heapq.heappush(open_set, (f_score[(nx, ny)], (nx, ny)))
+                        if [nx, ny] not in f_score:
+                            heapq.heappush(open_set, (f_score[[nx, ny]], [nx, ny]))
 
             return None  # No path found
 
