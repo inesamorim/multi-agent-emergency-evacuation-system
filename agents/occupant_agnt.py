@@ -122,28 +122,19 @@ class OccupantAgent(Agent):
     class EvacuateBehaviour(CyclicBehaviour):  
         """occupants move to the exit"""
         async def run(self):
-            z = self.agent.environment.occupants_loc[str(self.agent.jid)][2]
-            if self.agent.environment.movement == 'astar':
-                print("foo")
-                #find target
-                target = self.closest_exit()
-                if target == -1:
-                    target = self.closeste_stairs()
-                if target == -1:
-                    target = self.closest_windows()
-                
-                new = self.find_path(target)
-                print(target)
-                print(new)
-                if target != -1 and new:
-                    target = (target[0], target[1])
-                    pos = (self.find_path(target)[-2][0], self.find_path(target)[-2][1], z)
-                    print(f"pos: {pos}")
+            hierarchy = self.prefered_moves() #array with possible moves ordered by distance to closest exit, stairs or window
+            #print(hierarchy)
+            if str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                grid = self.agent.environment.get_grid(self.agent.environment.occupants_loc[str(self.agent.jid)][2])
+            for pos in hierarchy[0]:
+                #print(pos)
+                if self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
+                    #can go to position
                     if pos in self.agent.environment.exit_loc:
-                            #exit
-                            self.agent.environment.leave_building(self.agent.jid)
-                            print(f"Occupant {self.agent.jid} left the building safely")
-                            await self.agent.stop()
+                        #exit
+                        self.agent.environment.leave_building(self.agent.jid)
+                        print(f"Occupant {self.agent.jid} left the building safely")
+                        await self.agent.stop()
                     elif pos in self.agent.environment.stairs_locations and pos[2]-1 != -1:
                         #change floor
                         if self.leavefloor(pos[2]-1, pos=pos) != []:
@@ -175,53 +166,7 @@ class OccupantAgent(Agent):
                             print(f"Occupant {self.agent.jid} is moving to new position {pos}")
                             self.agent.environment.update_occupant_position(self.agent.jid, *pos)
 
-
-            else:
-                hierarchy = self.prefered_moves() #array with possible moves ordered by distance to closest exit, stairs or window
-                #print(hierarchy)
-                if str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                    grid = self.agent.environment.get_grid(self.agent.environment.occupants_loc[str(self.agent.jid)][2])
-                for pos in hierarchy[0]:
-                    #print(pos)
-                    if self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                        #can go to position
-                        if pos in self.agent.environment.exit_loc:
-                            #exit
-                            self.agent.environment.leave_building(self.agent.jid)
-                            print(f"Occupant {self.agent.jid} left the building safely")
-                            await self.agent.stop()
-                        elif pos in self.agent.environment.stairs_locations and pos[2]-1 != -1:
-                            #change floor
-                            if self.leavefloor(pos[2]-1, pos=pos) != []:
-                                    grid = self.agent.environment.get_grid(pos[2]-1)
-                                    new_pos = self.leavefloor(pos[2]-1, pos=pos)[0]
-                                    #print(f"new_pos: {new_pos}")
-                                    if self.is_possible_move(new_pos[0], new_pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys() and pos not in self.agent.environment.obstacles.keys():
-                                        print(f"Occupant {self.agent.jid} is moving to floor {pos[2]-1} and heading to new position {new_pos}")
-                                        self.agent.environment.update_occupant_position(self.agent.jid, *new_pos)
-                                        self.agent.floor = new_pos[2]
-                                    else:
-                                        print(f"The stairs in floor {pos[2]-1} are blocked. Occupant {self.agent.jid} waiting to be saved through window")
-                        
-                        elif pos in self.agent.environment.stairs_locations and pos[2]-1 == -1:
-                            new_pos = 0
-                            x = pos[0]
-                            y = pos[1]
-                            x1 = [x-1,x,x+1]
-                            y1 = [y-1,y,y+1]
-                            for i in x1:
-                                for j in y1:
-                                    if (i != x or j != y) and (i,j,pos[2]) not in self.agent.environment.stairs_locations:
-                                        new_pos = (i,j)
-                                        if new_pos != -1 and self.is_possible_move(new_pos[0], new_pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys() and new_pos not in self.agent.environment.stairs_locations:
-                                            print(f"Occupant {self.agent.jid} is moving to new position {pos}")
-                                            self.agent.environment.update_occupant_position(self.agent.jid, *pos)
-                        else:
-                            if self.is_possible_move(pos[0], pos[1], grid) and str(self.agent.jid) in self.agent.environment.occupants_loc.keys():
-                                print(f"Occupant {self.agent.jid} is moving to new position {pos}")
-                                self.agent.environment.update_occupant_position(self.agent.jid, *pos)
-
-                        break
+                    break
 
             await asyncio.sleep(3)
 
